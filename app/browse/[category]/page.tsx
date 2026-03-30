@@ -25,7 +25,7 @@ export default async function CategoryFeed({
         </div>
         <div className="space-y-3 mb-8">
           {posts.map((post) => (
-            <a key={post.id} href="#" className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors">
+            <a key={post.id} href={`/browse/${category}/${post.id}`} className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors">
               <p className="text-stone-700 text-sm leading-relaxed">{post.summary}</p>
               <div className="flex items-center gap-4 mt-3">
                 <span className="text-xs text-stone-400">{post.responses} responses</span>
