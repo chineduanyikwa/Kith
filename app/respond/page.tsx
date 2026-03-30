@@ -50,7 +50,7 @@ export default function Respond() {
           </div>
 
           <button className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors">
-            Send your voice
+            Add your voice
           </button>
 
         </div>
