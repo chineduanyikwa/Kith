@@ -23,7 +23,7 @@ export default function Browse() {
           {categories.map((category) => (
             <a
               key={category.name}
-              href="#"
+              href={`/browse/${category.name.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}
               className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors"
             >
               <div className="flex items-center justify-between">
