@@ -68,7 +68,7 @@ export default async function PostPage({
         </div>
 
         <a
-          href="#"
+          href="/respond"
           className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors"
         >
           Respond to this
