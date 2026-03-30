@@ -4,7 +4,7 @@ export default async function PostPage({
   params: Promise<{ category: string; post: string }>;
 }) {
   const { category } = await params;
-  const categoryName = decodeURIComponent(category).replace(/-/g, " ");
+  const categoryName = decodeURIComponent(category).replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
   const post = {
     summary: "I lost my mother three weeks ago and I don't know how to keep going.",
@@ -38,7 +38,7 @@ export default async function PostPage({
       <div className="max-w-md mx-auto">
 
         <div className="mb-6">
-          <a href={`/browse/${category}`} className="text-sm text-stone-400 hover:text-stone-600">
+          <a href={`/browse/${category}?intent=help`} className="text-sm text-stone-400 hover:text-stone-600">
             Back to {categoryName}
           </a>
         </div>

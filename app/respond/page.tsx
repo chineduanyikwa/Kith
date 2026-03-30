@@ -5,7 +5,7 @@ export default function Respond() {
 
         <div className="mb-6">
           <a href="#" className="text-sm text-stone-400 hover:text-stone-600">
-            Back to post
+            Back to Post
           </a>
         </div>
 

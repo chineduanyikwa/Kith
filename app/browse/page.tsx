@@ -1,4 +1,10 @@
-export default function Browse() {
+export default async function Browse({
+  searchParams,
+}: {
+  searchParams: Promise<{ intent?: string }>;
+}) {
+  const { intent } = await searchParams;
+
   const categories = [
     { name: "Grief", posts: 24, description: "" },
     { name: "Relationships", posts: 41, description: "" },
@@ -16,25 +22,35 @@ export default function Browse() {
     <main className="min-h-screen bg-stone-50 px-6 py-10">
       <div className="max-w-md mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-stone-800">What brings you here?</h1>
-          <p className="text-stone-500 mt-2">Choose a space that feels right.</p>
+          <h1 className="text-3xl font-bold text-stone-800">
+            {intent === "talk" ? "Where does it hurt?" : "What brings you here?"}
+          </h1>
+          <p className="text-stone-500 mt-2">
+            {intent === "talk" ? "Choose a space and speak freely." : "Choose a space that feels right."}
+          </p>
         </div>
         <div className="space-y-3">
-          {categories.map((category) => (
-            <a
-              key={category.name}
-              href={`/browse/${category.name.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}
-              className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-stone-800">{category.name}</span>
-                <span className="text-sm text-stone-400">{category.posts} voices</span>
-              </div>
-              {category.description ? (
-                <p className="text-sm text-stone-400 mt-2">{category.description}</p>
-              ) : null}
-            </a>
-          ))}
+          {categories.map((category) => {
+            const slug = category.name.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-');
+            const href = intent === "talk"
+              ? `/post?category=${slug}`
+              : `/browse/${slug}`;
+            return (
+              <a
+                key={category.name}
+                href={href}
+                className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-stone-800">{category.name}</span>
+                  <span className="text-sm text-stone-400">{category.posts} voices</span>
+                </div>
+                {category.description ? (
+                  <p className="text-sm text-stone-400 mt-2">{category.description}</p>
+                ) : null}
+              </a>
+            );
+          })}
         </div>
       </div>
     </main>
