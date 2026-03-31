@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase'
+
 export default async function CategoryFeed({
   params,
 }: {
@@ -6,12 +8,11 @@ export default async function CategoryFeed({
   const { category } = await params;
   const categoryName = decodeURIComponent(category).replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
-  const posts = [
-    { id: 1, summary: "I lost my mother three weeks ago and I don't know how to keep going.", responses: 4, time: "2h ago" },
-    { id: 2, summary: "Everyone keeps telling me to be strong but I'm exhausted from pretending.", responses: 7, time: "5h ago" },
-    { id: 3, summary: "It's been a year and people expect me to be over it. I'm not.", responses: 2, time: "1d ago" },
-    { id: 4, summary: "I don't know how to grieve someone I had a complicated relationship with.", responses: 9, time: "2d ago" },
-  ];
+  const { data: posts } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('category', category)
+    .order('created_at', { ascending: false })
 
   return (
     <main className="min-h-screen bg-stone-50 px-6 py-10">
@@ -24,15 +25,22 @@ export default async function CategoryFeed({
           <p className="text-stone-500 mt-1">Real people. Real pain. Real support.</p>
         </div>
         <div className="space-y-3">
-          {posts.map((post) => (
-            <a key={post.id} href={`/browse/${category}/${post.id}`} className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors">
-              <p className="text-stone-700 text-sm leading-relaxed">{post.summary}</p>
-              <div className="flex items-center gap-4 mt-3">
-                <span className="text-xs text-stone-400">{post.responses} responses</span>
-                <span className="text-xs text-stone-400">{post.time}</span>
-              </div>
-            </a>
-          ))}
+          {posts && posts.length > 0 ? (
+            posts.map((post) => (
+              <a key={post.id} href={`/browse/${category}/${post.id}`} className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors">
+                <p className="text-stone-700 text-sm leading-relaxed">{post.content}</p>
+                <div className="flex items-center gap-4 mt-3">
+                  <span className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : 'A member of Kith'}</span>
+                  <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
+                </div>
+              </a>
+            ))
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-stone-400 text-sm">No posts yet in this space.</p>
+              <p className="text-stone-400 text-sm mt-1">Be the first to speak.</p>
+            </div>
+          )}
         </div>
       </div>
     </main>

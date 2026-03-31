@@ -1,17 +1,43 @@
-export default async function NewPost({
-  searchParams,
-}: {
-  searchParams: Promise<{ category?: string }>;
-}) {
-  const { category } = await searchParams;
+'use client'
+
+import { useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+
+function PostForm() {
+  const searchParams = useSearchParams()
+  const category = searchParams.get('category') || ''
   const categoryDisplay = category
-    ? category.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-    : "";
+    ? category.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+    : ''
+
+  const [content, setContent] = useState('')
+  const [anonymous, setAnonymous] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
+  async function handleSubmit() {
+    if (!content.trim()) return
+    setLoading(true)
+
+    const { error } = await supabase.from('posts').insert({
+      content,
+      category,
+      anonymous,
+    })
+
+    if (!error) {
+      router.push(`/browse/${category}`)
+    } else {
+      console.error(error)
+      setLoading(false)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-stone-50 px-6 py-10">
       <div className="max-w-md mx-auto">
-
         <div className="mb-8">
           <a href="/browse?intent=talk" className="text-sm text-stone-400 hover:text-stone-600">
             Back to Categories
@@ -32,27 +58,46 @@ export default async function NewPost({
             <textarea
               placeholder="Say what you need to say..."
               rows={6}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
               className="w-full bg-white border border-stone-200 rounded-2xl px-5 py-4 text-stone-700 text-sm focus:outline-none focus:border-stone-400 resize-none"
             />
           </div>
 
           <div className="flex items-center gap-4 pt-2">
-            <button className="flex items-center gap-2 text-sm text-stone-500">
-              <div className="w-5 h-5 rounded-full border-2 border-stone-300"></div>
+            <button
+              onClick={() => setAnonymous(false)}
+              className="flex items-center gap-2 text-sm text-stone-500"
+            >
+              <div className={`w-5 h-5 rounded-full border-2 ${!anonymous ? 'border-stone-800 bg-stone-800' : 'border-stone-300'}`}></div>
               Post as yourself
             </button>
-            <button className="flex items-center gap-2 text-sm text-stone-500">
-              <div className="w-5 h-5 rounded-full border-2 border-stone-300"></div>
+            <button
+              onClick={() => setAnonymous(true)}
+              className="flex items-center gap-2 text-sm text-stone-500"
+            >
+              <div className={`w-5 h-5 rounded-full border-2 ${anonymous ? 'border-stone-800 bg-stone-800' : 'border-stone-300'}`}></div>
               Post anonymously
             </button>
           </div>
 
-          <button className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors mt-4">
-            Let it out
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors mt-4 disabled:opacity-50"
+          >
+            {loading ? 'Posting...' : 'Let it out'}
           </button>
         </div>
-
       </div>
     </main>
-  );
+  )
+}
+
+export default function NewPost() {
+  return (
+    <Suspense>
+      <PostForm />
+    </Suspense>
+  )
 }
