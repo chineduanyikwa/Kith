@@ -1,12 +1,20 @@
 import { supabase } from '@/lib/supabase'
 
+const SUPPORT_LABELS: Record<string, string> = {
+  let_it_out: 'Just let it out',
+  encouragement: 'Encouragement',
+  perspective: 'Perspective',
+  practical_advice: 'Practical advice',
+  shared_experience: 'Shared experience',
+}
+
 export default async function CategoryFeed({
   params,
 }: {
-  params: Promise<{ category: string }>;
+  params: Promise<{ category: string }>
 }) {
-  const { category } = await params;
-  const categoryName = decodeURIComponent(category).replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  const { category } = await params
+  const categoryName = decodeURIComponent(category).replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
   const { data: posts } = await supabase
     .from('posts')
@@ -27,10 +35,19 @@ export default async function CategoryFeed({
         <div className="space-y-3">
           {posts && posts.length > 0 ? (
             posts.map((post) => (
-              <a key={post.id} href={`/browse/${category}/${post.id}`} className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors">
+              <a
+                href={`/browse/${category}/${post.id}`}
+                key={post.id}
+                className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors"
+              >
+                {post.support_type && SUPPORT_LABELS[post.support_type] && (
+                  <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full mb-2">
+                    Needs: {SUPPORT_LABELS[post.support_type]}
+                  </span>
+                )}
                 <p className="text-stone-700 text-sm leading-relaxed">{post.content}</p>
                 <div className="flex items-center gap-4 mt-3">
-                  <span className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : 'A member of Kith'}</span>
+                  <span className="text-xs text-stone-400">{post.anonymous ? 'A member of Kith' : 'Anonymous'}</span>
                   <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
                 </div>
               </a>
@@ -44,5 +61,5 @@ export default async function CategoryFeed({
         </div>
       </div>
     </main>
-  );
+  )
 }

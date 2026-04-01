@@ -5,6 +5,14 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
+const SUPPORT_OPTIONS = [
+  { value: 'let_it_out', label: 'Just let it out', description: "I don't need advice. I just need to be heard." },
+  { value: 'encouragement', label: 'Encouragement', description: "I need someone to remind me I'm not alone." },
+  { value: 'perspective', label: 'Perspective', description: 'Help me see this differently.' },
+  { value: 'practical_advice', label: 'Practical advice', description: 'I want suggestions on what to do.' },
+  { value: 'shared_experience', label: 'Shared experience', description: 'Has anyone been through something like this?' },
+]
+
 function PostForm() {
   const searchParams = useSearchParams()
   const category = searchParams.get('category') || ''
@@ -13,6 +21,7 @@ function PostForm() {
     : ''
 
   const [content, setContent] = useState('')
+  const [supportType, setSupportType] = useState('')
   const [anonymous, setAnonymous] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -45,6 +54,7 @@ function PostForm() {
       content: content.trim(),
       category,
       anonymous,
+      support_type: supportType || null,
     })
 
     if (error) {
@@ -67,13 +77,14 @@ function PostForm() {
           </a>
           <h1 className="text-2xl font-bold text-stone-800 mt-2">What&apos;s on your heart?</h1>
           {categoryDisplay ? (
-            <p className="text-stone-500 mt-1 font-medium text-stone-700">Posting in {categoryDisplay}</p>
+            <p className="mt-1 font-medium text-stone-700">Posting in {categoryDisplay}</p>
           ) : (
             <p className="text-stone-500 mt-1">This is your space. Say it however it comes.</p>
           )}
         </div>
 
-        <div className="space-y-4 mt-6">
+        <div className="space-y-6 mt-6">
+
           <div>
             <label className="text-sm font-medium text-stone-400 block mb-2">
               Your post
@@ -100,6 +111,30 @@ function PostForm() {
             </div>
           </div>
 
+          <div>
+            <label className="text-sm font-medium text-stone-400 block mb-3">
+              What do you need right now? <span className="text-stone-300 font-normal">(optional)</span>
+            </label>
+            <div className="space-y-2">
+              {SUPPORT_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setSupportType(supportType === option.value ? '' : option.value)}
+                  className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                    supportType === option.value
+                      ? 'border-stone-800 bg-stone-800 text-white'
+                      : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
+                  }`}
+                >
+                  <p className="text-sm font-medium">{option.label}</p>
+                  <p className={`text-xs mt-0.5 ${supportType === option.value ? 'text-stone-300' : 'text-stone-400'}`}>
+                    {option.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex items-center gap-4 pt-2">
             <button
               onClick={() => setAnonymous(false)}
@@ -120,7 +155,7 @@ function PostForm() {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors mt-4 disabled:opacity-50"
+            className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors disabled:opacity-50"
           >
             {loading ? 'Posting...' : 'Let it out'}
           </button>
