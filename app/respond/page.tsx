@@ -29,6 +29,7 @@ function RespondForm() {
   const [anonymous, setAnonymous] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showCheck, setShowCheck] = useState(false)
   const router = useRouter()
 
   const MIN_LENGTH = 15
@@ -56,14 +57,18 @@ function RespondForm() {
     return null
   }
 
-  async function handleSubmit() {
+  function handleAddVoice() {
     const validationError = validate()
     if (validationError) {
       setError(validationError)
       return
     }
+    setShowCheck(true)
+  }
+
+  async function handleSubmit() {
     setLoading(true)
-    setError('')
+    setShowCheck(false)
     const { error } = await supabase.from('responses').insert({
       content: content.trim(),
       post_id: parseInt(postId),
@@ -145,9 +150,31 @@ function RespondForm() {
               Respond anonymously
             </button>
           </div>
-          <button onClick={handleSubmit} disabled={loading} className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors mt-4 disabled:opacity-50">
-            {loading ? 'Sending...' : 'Add your voice'}
-          </button>
+
+          {showCheck ? (
+            <div className="bg-white border border-stone-200 rounded-2xl px-6 py-5 mt-4">
+              <p className="text-sm font-medium text-stone-700 mb-4">Does this help them feel less alone?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCheck(false)}
+                  className="flex-1 border border-stone-200 text-stone-600 py-3 rounded-xl text-sm font-medium hover:border-stone-400 transition-colors"
+                >
+                  Go back
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="flex-1 bg-stone-800 text-white py-3 rounded-xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-50"
+                >
+                  {loading ? 'Sending...' : 'Yes, send it'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={handleAddVoice} className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors mt-4">
+              Add your voice
+            </button>
+          )}
         </div>
       </div>
     </main>
