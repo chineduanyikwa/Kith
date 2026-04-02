@@ -128,7 +128,7 @@ function PostForm() {
           <div>
             <label className="text-sm font-medium text-stone-400 block mb-2">Your post</label>
             <textarea
-              placeholder="Say what you need to say..."
+              placeholder="You've been holding this long enough."
               rows={6}
               value={content}
               onChange={(e) => {
