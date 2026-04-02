@@ -120,7 +120,7 @@ function PostForm() {
             {categoryDisplay && (
               <p className="text-medium font-medium text-stone-700">Posting in {categoryDisplay}</p>
             )}
-            <p className="text-stone-500 text-sm">This is your space. Say it however it comes.</p>
+  
           </div>
         </div>
 
