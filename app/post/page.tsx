@@ -118,7 +118,7 @@ function PostForm() {
           <div className="mt-4">
             <h1 className="text-2xl font-bold text-stone-800">What's on your heart?</h1>
             {categoryDisplay && (
-              <p className="text-medium font-medium text-stone-700">Posting in {categoryDisplay}</p>
+              <p className="text-medium font-medium text-stone-700"><span className="text-stone-400 font-normal">Posting in </span>{categoryDisplay}</p>
             )}
   
           </div>
