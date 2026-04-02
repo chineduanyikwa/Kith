@@ -168,7 +168,7 @@ function PostForm() {
                   className={'w-full text-left py-3 px-4 rounded-xl border transition-colors ' + (
                     supportType === option.value
                       ? 'border-stone-800 bg-stone-100 text-stone-800'
-                      : 'border-stone-200 hover:border-stone-300'
+                      : 'border-stone-200 bg-white hover:border-stone-300'
                   )}
                 >
                   <p className="font-medium text-sm">{option.label}</p>
@@ -180,13 +180,20 @@ function PostForm() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <p className="text-stone-600 text-sm">{anonymous ? 'Anonymous' : 'Your name'}</p>
+          <div className="flex gap-2">
             <button
-              onClick={() => setAnonymous(!anonymous)}
-              className="text-xs text-stone-400 hover:text-stone-600"
+              onClick={() => setAnonymous(false)}
+              className="flex items-center gap-2 text-sm text-stone-500"
             >
-              {anonymous ? 'Post as yourself instead' : 'Post anonymously instead'}
+              <div className={`w-5 h-5 rounded-full border-2 ${!anonymous ? 'border-stone-800 bg-stone-800' : 'border-stone-300'}`}></div>
+              Post as yourself
+            </button>
+            <button
+              onClick={() => setAnonymous(true)}
+              className="flex items-center gap-2 text-sm text-stone-500"
+            >
+              <div className={`w-5 h-5 rounded-full border-2 ${anonymous ? 'border-stone-800 bg-stone-800' : 'border-stone-300'}`}></div>
+              Post anonymously
             </button>
           </div>
 
