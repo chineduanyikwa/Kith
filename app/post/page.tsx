@@ -126,7 +126,7 @@ function PostForm() {
 
         <div className="space-y-6 mt-6">
           <div>
-            <label className="text-sm font-medium text-stone-400 block mb-2">Your post</label>
+            <label className="text-sm font-medium text-stone-400 block mb-2">Your space</label>
             <textarea
               placeholder="You've been holding this long enough."
               rows={6}
