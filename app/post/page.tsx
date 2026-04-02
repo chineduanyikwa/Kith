@@ -168,7 +168,7 @@ function PostForm() {
                   className={'w-full text-left py-3 px-4 rounded-xl border transition-colors ' + (
                     supportType === option.value
                       ? 'border-stone-800 bg-stone-100 text-stone-800'
-                      : 'border-stone-200 bg-white hover:border-stone-300'
+                      : 'border-stone-200 bg-white hover:border-stone-800'
                   )}
                 >
                   <p className="font-medium text-sm">{option.label}</p>
