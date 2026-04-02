@@ -98,7 +98,7 @@ function PostForm() {
             </button>
             <button
               onClick={() => { window.location.href = 'tel:' + MANI; }}
-              className="block w-full border border-stone-300 text-stone-700 py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-stone-50 transition-colors"
+              className="block w-full border border-stone-300 text-stone-700 py-3 px-4 rounded-2xl text-sm font-medium text-center hover:border-stone-800 transition-colors"
             >
               Call MANI now
             </button>
