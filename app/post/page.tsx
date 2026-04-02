@@ -158,7 +158,7 @@ function PostForm() {
 
           <div>
             <label className="text-sm font-medium text-stone-600 block mb-3">
-              What do you need right now? <span className="text-stone-300 font-normal">(optional)</span>
+              What do you need right now? <span className="text-stone-400 font-normal">(optional)</span>
             </label>
             <div className="space-y-2">
               {SUPPORT_OPTIONS.map((option) => (
