@@ -30,10 +30,14 @@ function detectCrisis(text: string) {
   return CRISIS_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
+const MANI_NUMBER = '08091116264';
+
 export default function PostPage() {
   const router = useRouter();
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState('');
+  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const initialCategory = searchParams ? (searchParams.get("category") || "") : "";
+  const [category, setCategory] = useState(initialCategory);
   const [supportType, setSupportType] = useState('');
   const [anonymous, setAnonymous] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -47,7 +51,7 @@ export default function PostPage() {
   async function doSubmit() {
     if (!isValid) return;
     setSubmitting(true);
-    const slug = category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, '');
+    const slug = category.toLowerCase().replace(/\s+/g, '-').replace(/[&]/g, '');
     const { error } = await supabase.from('posts').insert({
       content,
       category: slug,
@@ -82,7 +86,7 @@ export default function PostPage() {
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-8">
             <p className="text-amber-800 text-sm font-medium mb-1">If you need to talk to someone right now</p>
             <p className="text-amber-700 text-sm mb-2">Mentally Aware Nigeria Initiative (MANI) is available to help.</p>
-            <p className="text-amber-800 text-base font-semibold">08091116264</p>
+            <p className="text-amber-800 text-base font-semibold">{MANI_NUMBER}</p>
           </div>
 
           <div className="space-y-3">
@@ -92,12 +96,12 @@ export default function PostPage() {
             >
               I'm okay — take me to my post
             </button>
-            
-              href={"tel:08091116264"}
+            <button
+              onClick={() => { window.location.href = 'tel:' + MANI_NUMBER; }}
               className="block w-full border border-amber-300 text-amber-700 py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-amber-50 transition-colors"
             >
               Call MANI now
-            </a>
+            </button>
           </div>
         </div>
       </main>
@@ -191,7 +195,9 @@ export default function PostPage() {
         {isCrisis && content.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
             <p className="text-amber-800 text-sm font-medium mb-1">We see you.</p>
-            <p className="text-amber-700 text-sm">If you're in a dark place right now, you don't have to face it alone. MANI is here to listen: <span className="font-semibold">08091116264</span></p>
+            <p className="text-amber-700 text-sm">
+              If you're in a dark place right now, you don't have to face it alone. MANI is here to listen: <span className="font-semibold">{MANI_NUMBER}</span>
+            </p>
           </div>
         )}
 
