@@ -172,7 +172,7 @@ function PostForm() {
                   )}
                 >
                   <p className="font-medium text-sm">{option.label}</p>
-                  <p className={'text-xs mt-0.5 ' + (supportType === option.value ? 'text-stone-300' : 'text-stone-400')}>
+                  <p className={'text-xs mt-0.5 ' + (supportType === option.value ? 'text-stone-500' : 'text-stone-400')}>
                     {option.description}
                   </p>
                 </button>
