@@ -39,13 +39,13 @@ function ReportForm() {
 
   if (submitted) {
     return (
-      <main className="min-h-screen bg-stone-950 px-4 py-8">
+      <main className="min-h-screen bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto text-center pt-20">
-          <p className="text-stone-300 text-lg mb-2">Thank you for flagging this.</p>
+          <p className="text-stone-700 text-lg mb-2">Thank you for flagging this.</p>
           <p className="text-stone-500 text-sm mb-8">We'll review it and take action if needed.</p>
           <button
             onClick={() => router.back()}
-            className="text-stone-400 text-sm underline hover:text-stone-200"
+            className="text-stone-400 text-sm underline hover:text-stone-600"
           >
             Go back
           </button>
@@ -55,16 +55,16 @@ function ReportForm() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-950 px-4 py-8">
+    <main className="min-h-screen bg-stone-50 px-4 py-8">
       <div className="max-w-lg mx-auto">
         <button
           onClick={() => router.back()}
-          className="text-stone-500 text-sm mb-8 hover:text-stone-300 transition-colors"
+          className="text-stone-500 text-sm mb-8 hover:text-stone-700 transition-colors"
         >
           ← Back
         </button>
 
-        <h1 className="text-stone-100 text-xl font-medium mb-2">Report this response</h1>
+        <h1 className="text-stone-800 text-xl font-medium mb-2">Report this response</h1>
         <p className="text-stone-500 text-sm mb-8">What's the issue?</p>
 
         <div className="space-y-3 mb-8">
@@ -74,8 +74,8 @@ function ReportForm() {
               onClick={() => setSelectedReason(reason)}
               className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors ${
                 selectedReason === reason
-                  ? 'border-stone-400 bg-stone-800 text-stone-100'
-                  : 'border-stone-800 bg-stone-900 text-stone-400 hover:border-stone-600 hover:text-stone-300'
+                  ? 'border-stone-400 bg-stone-100 text-stone-800'
+                  : 'border-stone-200 bg-white text-stone-600 hover:border-stone-400 hover:text-stone-800'
               }`}
             >
               {reason}
@@ -86,7 +86,7 @@ function ReportForm() {
         <button
           onClick={handleSubmit}
           disabled={!selectedReason || submitting}
-          className="w-full bg-stone-700 text-white py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-stone-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-stone-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting ? 'Sending...' : 'Submit report'}
         </button>

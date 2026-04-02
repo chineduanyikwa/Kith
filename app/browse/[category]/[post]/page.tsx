@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 const SUPPORT_LABELS: Record<string, string> = {
@@ -11,31 +11,85 @@ const SUPPORT_LABELS: Record<string, string> = {
   shared_experience: 'Shared experience',
 };
 
-export default async function PostPage({
+type Post = {
+  id: number;
+  content: string;
+  category: string;
+  anonymous: boolean;
+  support_type: string | null;
+  created_at: string;
+};
+
+type ResponseRow = {
+  id: number;
+  content: string;
+  post_id: number;
+  anonymous: boolean;
+  created_at: string;
+  reportHref?: string;
+};
+
+export default function PostPage({
   params,
 }: {
   params: Promise<{ category: string; post: string }>;
 }) {
-  const { category, post: postId } = await params;
-  const categoryName = decodeURIComponent(category).replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  const { category, post: postId } = use(params);
+  const categoryName = decodeURIComponent(category)
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (l) => l.toUpperCase());
 
-  const { data: post } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('id', postId)
-    .single();
+  const [post, setPost] = useState<Post | null>(null);
+  const [responses, setResponses] = useState<ResponseRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [respondHref, setRespondHref] = useState('');
 
-  const { data: responses } = await supabase
-    .from('responses')
-    .select('*')
-    .eq('post_id', postId)
-    .order('created_at', { ascending: true });
+  useEffect(() => {
+    async function load() {
+      const { data: postData } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', postId)
+        .single();
+
+      const { data: responseData } = await supabase
+        .from('responses')
+        .select('*')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true });
+
+      if (postData) {
+        const p = new URLSearchParams({ post_id: String(postData.id), category });
+        setRespondHref('/respond?' + p.toString());
+      }
+
+      const rows = (responseData ?? []).map((r: ResponseRow) => {
+        const p = new URLSearchParams({ target_type: 'response', target_id: String(r.id) });
+        return { ...r, reportHref: '/report?' + p.toString() };
+      });
+
+      setPost(postData);
+      setResponses(rows);
+      setLoading(false);
+    }
+    load();
+  }, [postId, category]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-stone-50 px-4 py-8">
+        <div className="max-w-lg mx-auto">
+          <p className="text-stone-500 text-sm">Loading...</p>
+        </div>
+      </main>
+    );
+  }
 
   if (!post) {
     return (
-      <main className="min-h-screen bg-stone-950 px-4 py-8">
+      <main className="min-h-screen bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto">
-          <a href={'/browse/' + category} className="text-sm text-stone-500 hover:text-stone-300">
+          <a href={'/browse/' + category} className="text-sm text-stone-500 hover:text-stone-700">
             Back to {categoryName}
           </a>
           <p className="text-stone-400 mt-4">Post not found.</p>
@@ -45,9 +99,9 @@ export default async function PostPage({
   }
 
   return (
-    <main className="min-h-screen bg-stone-950 px-4 py-8">
+    <main className="min-h-screen bg-stone-50 px-4 py-8">
       <div className="max-w-lg mx-auto">
-        <a href={'/browse/' + category} className="text-sm text-stone-500 hover:text-stone-300">
+        <a href={'/browse/' + category} className="text-sm text-stone-500 hover:text-stone-700">
           Back to {categoryName}
         </a>
 
@@ -67,13 +121,12 @@ export default async function PostPage({
 
         <div className="mt-4">
           <p className="text-stone-500 text-sm">
-            {(responses?.length ?? 0) === 1 ? '1 person' : String(responses?.length ?? 0) + ' people'} showed up
+            {responses.length === 1 ? '1 person' : String(responses.length) + ' people'} showed up
           </p>
-          <p className="text-stone-600 text-xs">Be the same, show up.</p>
         </div>
 
         <div className="space-y-3 mt-4">
-          {responses && responses.length > 0 ? (
+          {responses.length > 0 ? (
             responses.map((response) => (
               <div key={response.id} className="bg-white border border-stone-200 rounded-2xl px-5 py-4">
                 <p className="text-stone-700 text-base leading-relaxed">{response.content}</p>
@@ -83,10 +136,7 @@ export default async function PostPage({
                     <span className="text-stone-300 text-xs">·</span>
                     <span className="text-xs text-stone-400">{new Date(response.created_at).toLocaleDateString()}</span>
                   </div>
-                  
-                    href={'/report?target_type=response&target_id=' + response.id}
-                    className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
-                  >
+                  <a href={response.reportHref} className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
                     Report
                   </a>
                 </div>
@@ -99,10 +149,7 @@ export default async function PostPage({
           )}
         </div>
 
-        
-          href={'/respond?post_id=' + post.id + '&category=' + category}
-          className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6"
-        >
+        <a href={respondHref} className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6">
           Respond to this
         </a>
       </div>
