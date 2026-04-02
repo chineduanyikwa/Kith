@@ -76,9 +76,14 @@ export default async function PostPage({
             responses.map((response) => (
               <div key={response.id} className="bg-white border border-stone-200 rounded-2xl px-5 py-4">
                 <p className="text-stone-700 text-sm leading-relaxed">{response.content}</p>
-                <div className="flex items-center gap-3 mt-3">
-                  <span className="text-xs text-stone-400">{response.anonymous ? 'A member of Kith' : 'Anonymous'}</span>
-                  <span className="text-xs text-stone-400">{new Date(response.created_at).toLocaleDateString()}</span>
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-stone-400">{response.anonymous ? 'A member of Kith' : 'Anonymous'}</span>
+                    <span className="text-xs text-stone-400">{new Date(response.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <a href={`/report?target_type=response&target_id=${response.id}`} className="text-xs text-stone-300 hover:text-stone-400 transition-colors">
+                    Report
+                  </a>
                 </div>
               </div>
             ))
