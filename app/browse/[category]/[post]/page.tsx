@@ -64,7 +64,7 @@ export default function PostPage({
       }
 
       const rows = (responseData ?? []).map((r: ResponseRow) => {
-        const p = new URLSearchParams({ target_type: 'response', target_id: String(r.id) });
+        const p = new URLSearchParams({ target_type: 'response', target_id: String(r.id), category: category, post_id: String(postId) });
         return { ...r, reportHref: '/report?' + p.toString() };
       });
 

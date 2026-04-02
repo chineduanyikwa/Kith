@@ -44,7 +44,7 @@ function ReportForm() {
           <p className="text-stone-700 text-lg mb-2">Thank you for flagging this.</p>
           <p className="text-stone-500 text-sm mb-8">We'll review it and take action if needed.</p>
           <button
-            onClick={() => window.history.back()}
+            onClick={() => router.push('/browse/' + (searchParams.get('category') || '') + '/' + (searchParams.get('post_id') || ''))}
             className="text-stone-400 text-sm underline hover:text-stone-600"
           >
             Go back
@@ -58,7 +58,7 @@ function ReportForm() {
     <main className="min-h-screen bg-stone-50 px-4 py-8">
       <div className="max-w-lg mx-auto">
         <button
-          onClick={() => window.history.back()}
+          onClick={() => router.push('/browse/' + (searchParams.get('category') || '') + '/' + (searchParams.get('post_id') || ''))}
           className="text-stone-500 text-sm mb-8 hover:text-stone-700 transition-colors"
         >
           ← Back
