@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 const SUPPORT_LABELS: Record<string, string> = {
@@ -36,8 +35,8 @@ export default async function PostPage({
     return (
       <main className="min-h-screen bg-stone-950 px-4 py-8">
         <div className="max-w-lg mx-auto">
-          <a href={`/browse/${category}`} className="text-sm text-stone-500 hover:text-stone-300">
-            ← Back to {categoryName}
+          <a href={'/browse/' + category} className="text-sm text-stone-500 hover:text-stone-300">
+            Back to {categoryName}
           </a>
           <p className="text-stone-400 mt-4">Post not found.</p>
         </div>
@@ -48,8 +47,8 @@ export default async function PostPage({
   return (
     <main className="min-h-screen bg-stone-950 px-4 py-8">
       <div className="max-w-lg mx-auto">
-        <a href={`/browse/${category}`} className="text-sm text-stone-500 hover:text-stone-300">
-          ← Back to {categoryName}
+        <a href={'/browse/' + category} className="text-sm text-stone-500 hover:text-stone-300">
+          Back to {categoryName}
         </a>
 
         <div className="bg-white border border-stone-200 rounded-2xl px-5 py-4 mt-6">
@@ -68,9 +67,9 @@ export default async function PostPage({
 
         <div className="mt-4">
           <p className="text-stone-500 text-sm">
-            {(responses?.length ?? 0) === 1 ? '1 person' : `${responses?.length ?? 0} people`} showed up
+            {(responses?.length ?? 0) === 1 ? '1 person' : String(responses?.length ?? 0) + ' people'} showed up
           </p>
-          <p className="text-stone-600 text-xs">· Be the same, show up.</p>
+          <p className="text-stone-600 text-xs">Be the same, show up.</p>
         </div>
 
         <div className="space-y-3 mt-4">
@@ -85,7 +84,7 @@ export default async function PostPage({
                     <span className="text-xs text-stone-400">{new Date(response.created_at).toLocaleDateString()}</span>
                   </div>
                   
-                    href={`/report?target_type=response&target_id=${response.id}`}
+                    href={'/report?target_type=response&target_id=' + response.id}
                     className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
                   >
                     Report
@@ -101,7 +100,7 @@ export default async function PostPage({
         </div>
 
         
-          href={`/respond?post_id=${post.id}&category=${category}`}
+          href={'/respond?post_id=' + post.id + '&category=' + category}
           className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6"
         >
           Respond to this
