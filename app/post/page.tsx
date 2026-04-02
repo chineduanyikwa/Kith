@@ -167,7 +167,7 @@ function PostForm() {
                   onClick={() => setSupportType(supportType === option.value ? '' : option.value)}
                   className={'w-full text-left py-3 px-4 rounded-xl border transition-colors ' + (
                     supportType === option.value
-                      ? 'border-stone-800 bg-white text-stone-800'
+                      ? 'border-stone-800 bg-stone-100 text-stone-800'
                       : 'border-stone-200 hover:border-stone-300'
                   )}
                 >
