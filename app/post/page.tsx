@@ -84,10 +84,10 @@ function PostForm() {
           <p className="text-stone-600 text-sm leading-relaxed mb-8">
             Some of what you wrote made us want to check in with you. Are you okay?
           </p>
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-8">
+          <div className="bg-stone-100 border border-stone-200 rounded-2xl px-5 py-4 mb-8">
             <p className="text-stone-700 text-sm font-medium mb-1">If you need to talk to someone right now</p>
             <p className="text-stone-600 text-sm mb-2">Mentally Aware Nigeria Initiative (MANI) is available to help.</p>
-            <p className="text-amber-800 text-base font-semibold">{MANI}</p>
+            <p className="text-stone-800 text-base font-semibold">{MANI}</p>
           </div>
           <div className="space-y-3">
             <button
@@ -98,7 +98,7 @@ function PostForm() {
             </button>
             <button
               onClick={() => { window.location.href = 'tel:' + MANI; }}
-              className="block w-full border border-amber-300 text-amber-700 py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-amber-50 transition-colors"
+              className="block w-full border border-stone-300 text-stone-700 py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-stone-50 transition-colors"
             >
               Call MANI now
             </button>
