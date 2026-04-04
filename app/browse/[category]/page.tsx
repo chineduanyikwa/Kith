@@ -18,7 +18,7 @@ export default async function CategoryFeed({
 
   const { data: posts } = await supabase
     .from('posts')
-    .select('*')
+    .select('*, profiles!posts_user_id_profiles_fkey(username)')
     .eq('category', category)
     .order('created_at', { ascending: false })
 
@@ -47,7 +47,7 @@ export default async function CategoryFeed({
                 )}
                 <p className="text-stone-700 text-sm leading-relaxed">{post.content}</p>
                 <div className="flex items-center gap-4 mt-3">
-                  <span className="text-xs text-stone-400">{post.anonymous ? 'A member of Kith' : 'Anonymous'}</span>
+                  <span className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'A member of Kith')}</span>
                   <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
                 </div>
               </a>

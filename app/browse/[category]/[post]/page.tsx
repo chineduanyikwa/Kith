@@ -18,6 +18,7 @@ type Post = {
   anonymous: boolean;
   support_type: string | null;
   created_at: string;
+  profiles?: { username: string } | null;
 };
 
 type ResponseRow = {
@@ -26,6 +27,7 @@ type ResponseRow = {
   post_id: number;
   anonymous: boolean;
   created_at: string;
+  profiles?: { username: string } | null;
   reportHref?: string;
 };
 
@@ -48,13 +50,13 @@ export default function PostPage({
     async function load() {
       const { data: postData } = await supabase
         .from('posts')
-        .select('*')
+        .select('*, profiles!posts_user_id_profiles_fkey(username)')
         .eq('id', postId)
         .single();
 
       const { data: responseData } = await supabase
         .from('responses')
-        .select('*')
+        .select('*, profiles!responses_user_id_profiles_fkey(username)')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
@@ -113,7 +115,7 @@ export default function PostPage({
           )}
           <p className="text-stone-700 text-base leading-relaxed">{post.content}</p>
           <div className="flex items-center gap-2 mt-3">
-            <p className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : 'A member of Kith'}</p>
+            <p className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'A member of Kith')}</p>
             <span className="text-stone-300 text-xs">·</span>
             <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
           </div>
@@ -132,7 +134,7 @@ export default function PostPage({
                 <p className="text-stone-700 text-base leading-relaxed">{response.content}</p>
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-stone-400">{response.anonymous ? 'Anonymous' : 'A member of Kith'}</p>
+                    <p className="text-xs text-stone-400">{response.anonymous ? 'Anonymous' : (response.profiles?.username ?? 'A member of Kith')}</p>
                     <span className="text-stone-300 text-xs">·</span>
                     <span className="text-xs text-stone-400">{new Date(response.created_at).toLocaleDateString()}</span>
                   </div>
