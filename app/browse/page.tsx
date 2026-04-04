@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase'
+
 export default async function Browse({
   searchParams,
 }: {
@@ -5,17 +7,23 @@ export default async function Browse({
 }) {
   const { intent } = await searchParams;
 
+  const { data: rows } = await supabase.from('posts').select('category')
+  const counts: Record<string, number> = {}
+  for (const row of rows ?? []) {
+    counts[row.category] = (counts[row.category] || 0) + 1
+  }
+
   const categories = [
-    { name: "Grief", posts: 24, description: "" },
-    { name: "Relationships", posts: 41, description: "" },
-    { name: "Family", posts: 18, description: "" },
-    { name: "Work & Career", posts: 33, description: "" },
-    { name: "Loneliness", posts: 29, description: "" },
-    { name: "Identity", posts: 15, description: "" },
-    { name: "Mental Health", posts: 37, description: "Anxiety, depression, burnout, emptiness. The feelings that are hard to name and harder to carry alone." },
-    { name: "Finances", posts: 12, description: "" },
-    { name: "Health", posts: 9, description: "" },
-    { name: "Everything Else", posts: 21, description: "If it does not fit anywhere else, it belongs here." },
+    { name: "Grief", description: "" },
+    { name: "Relationships", description: "" },
+    { name: "Family", description: "" },
+    { name: "Work & Career", description: "" },
+    { name: "Loneliness", description: "" },
+    { name: "Identity", description: "" },
+    { name: "Mental Health", description: "Anxiety, depression, burnout, emptiness. The feelings that are hard to name and harder to carry alone." },
+    { name: "Finances", description: "" },
+    { name: "Health", description: "" },
+    { name: "Everything Else", description: "If it does not fit anywhere else, it belongs here." },
   ];
 
   return (
@@ -43,7 +51,7 @@ export default async function Browse({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-stone-800">{category.name}</span>
-                  <span className="text-sm text-stone-400">{category.posts} voices</span>
+                  <span className="text-sm text-stone-400">{counts[slug] || 0} {counts[slug] === 1 ? 'voice' : 'voices'}</span>
                 </div>
                 {category.description ? (
                   <p className="text-sm text-stone-400 mt-2">{category.description}</p>

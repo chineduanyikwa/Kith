@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 const SUPPORT_LABELS: Record<string, string> = {
@@ -18,6 +19,7 @@ type Post = {
   anonymous: boolean;
   support_type: string | null;
   created_at: string;
+  user_id?: string | null;
   profiles?: { username: string } | null;
 };
 
@@ -37,6 +39,9 @@ export default function PostPage({
   params: Promise<{ category: string; post: string }>;
 }) {
   const { category, post: postId } = use(params);
+  const searchParams = useSearchParams();
+  const intent = searchParams.get('intent');
+  const backHref = `/browse/${category}${intent ? `?intent=${intent}` : ''}`;
   const categoryName = decodeURIComponent(category)
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (l) => l.toUpperCase());
@@ -45,9 +50,13 @@ export default function PostPage({
   const [responses, setResponses] = useState<ResponseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [respondHref, setRespondHref] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+
       const { data: postData } = await supabase
         .from('posts')
         .select('*, profiles!posts_user_id_profiles_fkey(username)')
@@ -91,7 +100,7 @@ export default function PostPage({
     return (
       <main className="min-h-screen bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto">
-          <a href={'/browse/' + category} className="text-sm text-stone-500 hover:text-stone-700">
+          <a href={backHref} className="text-sm text-stone-500 hover:text-stone-700">
             Back to {categoryName}
           </a>
           <p className="text-stone-400 mt-4">Post not found.</p>
@@ -146,14 +155,16 @@ export default function PostPage({
             ))
           ) : (
             <div className="text-center py-8">
-              <p className="text-stone-400 text-sm">Be the first to show up.</p>
+              <p className="text-stone-400 text-sm">Waiting for someone to show up.</p>
             </div>
           )}
         </div>
 
-        <a href={respondHref} className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6">
-          Respond to this
-        </a>
+        {(!currentUserId || currentUserId !== post.user_id) && (
+          <a href={respondHref} className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6">
+            Respond to this
+          </a>
+        )}
       </div>
     </main>
   );
