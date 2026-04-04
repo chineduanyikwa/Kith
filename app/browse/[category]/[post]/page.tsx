@@ -18,6 +18,7 @@ type Post = {
   anonymous: boolean;
   support_type: string | null;
   created_at: string;
+  user_id?: string | null;
   profiles?: { username: string } | null;
 };
 
@@ -45,9 +46,13 @@ export default function PostPage({
   const [responses, setResponses] = useState<ResponseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [respondHref, setRespondHref] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+
       const { data: postData } = await supabase
         .from('posts')
         .select('*, profiles!posts_user_id_profiles_fkey(username)')
@@ -146,14 +151,16 @@ export default function PostPage({
             ))
           ) : (
             <div className="text-center py-8">
-              <p className="text-stone-400 text-sm">Be the first to show up.</p>
+              <p className="text-stone-400 text-sm">Waiting for someone to show up.</p>
             </div>
           )}
         </div>
 
-        <a href={respondHref} className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6">
-          Respond to this
-        </a>
+        {(!currentUserId || currentUserId !== post.user_id) && (
+          <a href={respondHref} className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6">
+            Respond to this
+          </a>
+        )}
       </div>
     </main>
   );
