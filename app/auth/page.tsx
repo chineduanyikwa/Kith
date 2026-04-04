@@ -11,7 +11,7 @@ function AuthForm() {
   const router = useRouter();
   const next = searchParams.get('next') || '/';
 
-  const [tab, setTab] = useState<'signup' | 'login'>('signup');
+  const [tab, setTab] = useState<'signup' | 'login'>(searchParams.get('tab') === 'login' ? 'login' : 'signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');

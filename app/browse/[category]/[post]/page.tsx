@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 const SUPPORT_LABELS: Record<string, string> = {
@@ -38,6 +39,9 @@ export default function PostPage({
   params: Promise<{ category: string; post: string }>;
 }) {
   const { category, post: postId } = use(params);
+  const searchParams = useSearchParams();
+  const intent = searchParams.get('intent');
+  const backHref = `/browse/${category}${intent ? `?intent=${intent}` : ''}`;
   const categoryName = decodeURIComponent(category)
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (l) => l.toUpperCase());
@@ -96,7 +100,7 @@ export default function PostPage({
     return (
       <main className="min-h-screen bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto">
-          <a href={'/browse/' + category} className="text-sm text-stone-500 hover:text-stone-700">
+          <a href={backHref} className="text-sm text-stone-500 hover:text-stone-700">
             Back to {categoryName}
           </a>
           <p className="text-stone-400 mt-4">Post not found.</p>

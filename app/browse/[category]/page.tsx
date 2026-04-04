@@ -10,10 +10,13 @@ const SUPPORT_LABELS: Record<string, string> = {
 
 export default async function CategoryFeed({
   params,
+  searchParams,
 }: {
   params: Promise<{ category: string }>
+  searchParams: Promise<{ intent?: string }>
 }) {
   const { category } = await params
+  const { intent } = await searchParams
   const categoryName = decodeURIComponent(category).replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
   const { data: posts } = await supabase
@@ -26,7 +29,7 @@ export default async function CategoryFeed({
     <main className="min-h-screen bg-stone-50 px-6 py-10">
       <div className="max-w-md mx-auto">
         <div className="mb-8">
-          <a href="/browse?intent=help" className="text-sm text-stone-400 hover:text-stone-600">
+          <a href={intent ? `/browse?intent=${intent}` : '/browse'} className="text-sm text-stone-400 hover:text-stone-600">
             Back to Categories
           </a>
           <h1 className="text-3xl font-bold text-stone-800 mt-2 capitalize">{categoryName}</h1>
@@ -36,7 +39,7 @@ export default async function CategoryFeed({
           {posts && posts.length > 0 ? (
             posts.map((post) => (
               <a
-                href={`/browse/${category}/${post.id}`}
+                href={`/browse/${category}/${post.id}${intent ? `?intent=${intent}` : ''}`}
                 key={post.id}
                 className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors"
               >
