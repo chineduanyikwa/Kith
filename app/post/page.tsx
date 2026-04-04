@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 const SUPPORT_OPTIONS = [
   { value: 'let_it_out', label: 'Just let it out', description: "I don't need advice. I just need to be heard." },
@@ -34,10 +35,49 @@ function PostForm() {
 
   const [content, setContent] = useState('');
   const [supportType, setSupportType] = useState('');
-  const [anonymous, setAnonymous] = useState(true);
+  const [hideUsername, setHideUsername] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCrisisFollowUp, setShowCrisisFollowUp] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [autoSubmitting, setAutoSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function init() {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        setUser(currentUser);
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', currentUser.id)
+          .single();
+        if (profile) setUsername(profile.username);
+      }
+
+      const pending = localStorage.getItem('kith_pending_post');
+      if (pending && currentUser) {
+        localStorage.removeItem('kith_pending_post');
+        const saved = JSON.parse(pending);
+        setAutoSubmitting(true);
+        const { error: dbError } = await supabase.from('posts').insert({
+          content: saved.content,
+          category: saved.category,
+          anonymous: false,
+          support_type: saved.supportType || null,
+          user_id: currentUser.id,
+        });
+        if (dbError) {
+          console.error(dbError);
+          setAutoSubmitting(false);
+        } else {
+          router.push('/browse/' + saved.category);
+        }
+      }
+    }
+    init();
+  }, [router]);
 
   const isCrisis = CRISIS_KEYWORDS.some((kw) => content.toLowerCase().includes(kw));
 
@@ -58,12 +98,21 @@ function PostForm() {
       return;
     }
     setError('');
+
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) {
+      localStorage.setItem('kith_pending_post', JSON.stringify({ content, supportType, category }));
+      router.push('/auth?next=' + encodeURIComponent('/post?category=' + category));
+      return;
+    }
+
     setLoading(true);
     const { error: dbError } = await supabase.from('posts').insert({
       content,
       category,
-      anonymous,
+      anonymous: hideUsername,
       support_type: supportType || null,
+      user_id: currentUser.id,
     });
     setLoading(false);
     if (dbError) {
@@ -74,6 +123,16 @@ function PostForm() {
     } else {
       router.push('/browse/' + category);
     }
+  }
+
+  if (autoSubmitting) {
+    return (
+      <main className="min-h-screen bg-stone-50 px-6 py-8">
+        <div className="max-w-xl mx-auto pt-12 text-center">
+          <p className="text-stone-500 text-sm">Submitting your post...</p>
+        </div>
+      </main>
+    );
   }
 
   if (showCrisisFollowUp) {
@@ -180,20 +239,20 @@ function PostForm() {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div>
+            {user && username && (
+              <p className="text-sm text-stone-500 mb-2">
+                Posting as <span className="font-medium text-stone-700">{hideUsername ? 'Anonymous' : username}</span>
+              </p>
+            )}
             <button
-              onClick={() => setAnonymous(false)}
+              onClick={() => setHideUsername(!hideUsername)}
               className="flex items-center gap-2 text-sm text-stone-500"
             >
-              <div className={`w-5 h-5 rounded-full border-2 ${!anonymous ? 'border-stone-800 bg-stone-800' : 'border-stone-300'}`}></div>
-              Post as yourself
-            </button>
-            <button
-              onClick={() => setAnonymous(true)}
-              className="flex items-center gap-2 text-sm text-stone-500"
-            >
-              <div className={`w-5 h-5 rounded-full border-2 ${anonymous ? 'border-stone-800 bg-stone-800' : 'border-stone-300'}`}></div>
-              Post anonymously
+              <div className={'w-4 h-4 rounded border-2 flex items-center justify-center ' + (hideUsername ? 'border-stone-800 bg-stone-800' : 'border-stone-300')}>
+                {hideUsername && <span className="text-white text-xs">✓</span>}
+              </div>
+              Hide my username for this post
             </button>
           </div>
 

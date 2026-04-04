@@ -3,6 +3,7 @@
 import { useState, Suspense, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import type { User } from '@supabase/supabase-js'
 
 const SUPPORT_LABELS: Record<string, string> = {
   let_it_out: 'Just let it out',
@@ -26,10 +27,13 @@ function RespondForm() {
 
   const [post, setPost] = useState<{ content: string; anonymous: boolean; support_type?: string } | null>(null)
   const [content, setContent] = useState('')
-  const [anonymous, setAnonymous] = useState(true)
+  const [hideUsername, setHideUsername] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showCheck, setShowCheck] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
+  const [autoSubmitting, setAutoSubmitting] = useState(false)
   const router = useRouter()
 
   const MIN_LENGTH = 15
@@ -46,6 +50,41 @@ function RespondForm() {
     }
     if (postId) loadPost()
   }, [postId])
+
+  useEffect(() => {
+    async function init() {
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      if (currentUser) {
+        setUser(currentUser)
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', currentUser.id)
+          .single()
+        if (profile) setUsername(profile.username)
+      }
+
+      const pending = localStorage.getItem('kith_pending_response')
+      if (pending && currentUser) {
+        localStorage.removeItem('kith_pending_response')
+        const saved = JSON.parse(pending)
+        setAutoSubmitting(true)
+        const { error } = await supabase.from('responses').insert({
+          content: saved.content,
+          post_id: parseInt(saved.postId),
+          anonymous: saved.hideUsername ?? false,
+          user_id: currentUser.id,
+        })
+        if (error) {
+          console.error(error)
+          setAutoSubmitting(false)
+        } else {
+          router.push(`/browse/${saved.category}/${saved.postId}`)
+        }
+      }
+    }
+    init()
+  }, [router])
 
   const validate = () => {
     if (content.trim().length < MIN_LENGTH) {
@@ -67,12 +106,26 @@ function RespondForm() {
   }
 
   async function handleSubmit() {
-    setLoading(true)
     setShowCheck(false)
+
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    if (!currentUser) {
+      localStorage.setItem('kith_pending_response', JSON.stringify({
+        content: content.trim(),
+        postId,
+        category,
+        hideUsername,
+      }))
+      router.push('/auth?next=' + encodeURIComponent(`/respond?post_id=${postId}&category=${category}`))
+      return
+    }
+
+    setLoading(true)
     const { error } = await supabase.from('responses').insert({
       content: content.trim(),
       post_id: parseInt(postId),
-      anonymous,
+      anonymous: hideUsername,
+      user_id: currentUser.id,
     })
     if (error) {
       console.error(error)
@@ -80,6 +133,16 @@ function RespondForm() {
     } else {
       router.push(`/browse/${category}/${postId}`)
     }
+  }
+
+  if (autoSubmitting) {
+    return (
+      <main className="min-h-screen bg-stone-50 px-6 py-10">
+        <div className="max-w-xl mx-auto pt-12 text-center">
+          <p className="text-stone-500 text-sm">Submitting your response...</p>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -140,14 +203,17 @@ function RespondForm() {
               <p className="text-xs text-stone-400 ml-auto">{content.length}/{MAX_LENGTH}</p>
             </div>
           </div>
-          <div className="flex items-center gap-4 pt-2">
-            <button onClick={() => setAnonymous(false)} className="flex items-center gap-2 text-sm text-stone-500">
-              <div className={`w-5 h-5 rounded-full border-2 ${!anonymous ? 'border-stone-800 bg-stone-800' : 'border-stone-300'}`}></div>
-              Respond as yourself
-            </button>
-            <button onClick={() => setAnonymous(true)} className="flex items-center gap-2 text-sm text-stone-500">
-              <div className={`w-5 h-5 rounded-full border-2 ${anonymous ? 'border-stone-800 bg-stone-800' : 'border-stone-300'}`}></div>
-              Respond anonymously
+          <div className="pt-2">
+            {user && username && (
+              <p className="text-sm text-stone-500 mb-2">
+                Responding as <span className="font-medium text-stone-700">{hideUsername ? 'Anonymous' : username}</span>
+              </p>
+            )}
+            <button onClick={() => setHideUsername(!hideUsername)} className="flex items-center gap-2 text-sm text-stone-500">
+              <div className={'w-4 h-4 rounded border-2 flex items-center justify-center ' + (hideUsername ? 'border-stone-800 bg-stone-800' : 'border-stone-300')}>
+                {hideUsername && <span className="text-white text-xs">✓</span>}
+              </div>
+              Hide my username for this response
             </button>
           </div>
 
