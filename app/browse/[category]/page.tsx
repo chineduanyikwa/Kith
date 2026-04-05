@@ -26,7 +26,7 @@ export default async function CategoryFeed({
     .order('created_at', { ascending: false })
 
   return (
-    <main className="bg-stone-50 px-6 py-10">
+    <main className="min-h-screen bg-stone-50 px-6 py-10">
       <div className="max-w-md mx-auto">
         <div className="mb-8">
           <a href={intent ? `/browse?intent=${intent}` : '/browse'} className="text-sm text-stone-400 hover:text-stone-600">

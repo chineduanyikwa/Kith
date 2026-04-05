@@ -127,7 +127,7 @@ function PostForm() {
 
   if (autoSubmitting) {
     return (
-      <main className="bg-stone-50 px-6 py-8">
+      <main className="min-h-screen bg-stone-50 px-6 py-8">
         <div className="max-w-xl mx-auto pt-12 text-center">
           <p className="text-stone-500 text-sm">Submitting your post...</p>
         </div>
@@ -137,7 +137,7 @@ function PostForm() {
 
   if (showCrisisFollowUp) {
     return (
-      <main className="bg-stone-50 px-4 py-8">
+      <main className="min-h-screen bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto pt-12">
           <p className="text-stone-800 text-lg font-medium mb-3">Your post has been shared.</p>
           <p className="text-stone-600 text-sm leading-relaxed mb-8">
@@ -168,7 +168,7 @@ function PostForm() {
   }
 
   return (
-    <main className="bg-stone-50 px-6 py-8">
+    <main className="min-h-screen bg-stone-50 px-6 py-8">
       <div className="max-w-xl mx-auto">
         <div>
           <a href="/browse?intent=talk" className="text-sm text-stone-500 hover:text-stone-600">
