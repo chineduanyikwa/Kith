@@ -114,7 +114,7 @@ function AuthForm() {
 
   if (successMessage) {
     return (
-      <main className="bg-stone-50 px-6 py-8">
+      <main className="min-h-screen bg-stone-50 px-6 py-8">
         <div className="max-w-md mx-auto pt-12">
           <div className="bg-white border border-stone-200 rounded-2xl px-6 py-8 text-center">
             <p className="text-stone-800 text-lg font-medium mb-2">Check your email</p>
@@ -126,7 +126,7 @@ function AuthForm() {
   }
 
   return (
-    <main className="bg-stone-50 px-6 py-8">
+    <main className="min-h-screen bg-stone-50 px-6 py-8">
       <div className="max-w-md mx-auto pt-12">
         <h1 className="text-2xl font-bold text-stone-800 mb-6 text-center">Welcome to Kith</h1>
 
