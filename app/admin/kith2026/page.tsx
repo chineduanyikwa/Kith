@@ -60,7 +60,7 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-stone-50 px-4 py-8">
+      <main className="bg-stone-50 px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <p className="text-stone-500 text-sm">Loading reports...</p>
         </div>
@@ -69,7 +69,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-50 px-4 py-8">
+    <main className="bg-stone-50 px-4 py-8">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-stone-800 text-xl font-medium mb-1">Moderation</h1>
         <p className="text-stone-500 text-sm mb-8">

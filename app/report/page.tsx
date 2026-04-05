@@ -49,7 +49,7 @@ function ReportForm() {
 
   if (submitted) {
     return (
-      <main className="min-h-screen bg-stone-50 px-4 py-8">
+      <main className="bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto text-center pt-20">
           <p className="text-stone-700 text-lg mb-2">Thank you for flagging this.</p>
           <p className="text-stone-500 text-sm mb-8">We'll review it and take action if needed.</p>
@@ -65,7 +65,7 @@ function ReportForm() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-50 px-4 py-8">
+    <main className="bg-stone-50 px-4 py-8">
       <div className="max-w-lg mx-auto">
         <button
           onClick={handleBack}

@@ -88,7 +88,7 @@ export default function PostPage({
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-stone-50 px-4 py-8">
+      <main className="bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto">
           <p className="text-stone-500 text-sm">Loading...</p>
         </div>
@@ -98,7 +98,7 @@ export default function PostPage({
 
   if (!post) {
     return (
-      <main className="min-h-screen bg-stone-50 px-4 py-8">
+      <main className="bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto">
           <a href={backHref} className="text-sm text-stone-500 hover:text-stone-700">
             Back to {categoryName}
@@ -110,7 +110,7 @@ export default function PostPage({
   }
 
   return (
-    <main className="min-h-screen bg-stone-50 px-4 py-8">
+    <main className="bg-stone-50 px-4 py-8">
       <div className="max-w-lg mx-auto">
         <a href={'/browse/' + category} className="text-sm text-stone-500 hover:text-stone-700">
           Back to {categoryName}

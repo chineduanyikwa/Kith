@@ -27,7 +27,7 @@ export default async function Browse({
   ];
 
   return (
-    <main className="min-h-screen bg-stone-50 px-6 py-10">
+    <main className="bg-stone-50 px-6 py-10">
       <div className="max-w-md mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-stone-800">
