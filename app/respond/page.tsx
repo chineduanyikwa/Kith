@@ -137,7 +137,7 @@ function RespondForm() {
 
   if (autoSubmitting) {
     return (
-      <main className="min-h-screen bg-stone-50 px-6 py-10">
+      <main className="bg-stone-50 px-6 py-10">
         <div className="max-w-xl mx-auto pt-12 text-center">
           <p className="text-stone-500 text-sm">Submitting your response...</p>
         </div>
@@ -146,7 +146,7 @@ function RespondForm() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-50 px-6 py-10">
+    <main className="bg-stone-50 px-6 py-10">
       <div className="max-w-xl mx-auto">
         <div className="mb-6">
           <a href={`/browse/${category}/${postId}`} className="text-sm text-stone-400 hover:text-stone-600">

@@ -28,7 +28,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body>
+      <body className="bg-stone-50 min-h-screen">
         <Header />
         <main>
           {children}
