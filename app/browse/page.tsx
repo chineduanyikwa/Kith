@@ -63,7 +63,9 @@ export default async function Browse({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-stone-800">{category.name}</span>
-                  <span className="text-sm text-stone-400">{counts[slug] || 0} {counts[slug] === 1 ? 'voice' : 'voices'}</span>
+                  {intent === "talk" ? null : (
+                    <span className="text-sm text-stone-400">{counts[slug] || 0} {counts[slug] === 1 ? 'voice' : 'voices'}</span>
+                  )}
                 </div>
                 {category.description ? (
                   <p className="text-sm text-stone-400 mt-2">{category.description}</p>
