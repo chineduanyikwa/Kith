@@ -31,12 +31,17 @@ export default function Header() {
       {!ready ? (
         <div className="w-32 h-8" />
       ) : loggedIn ? (
-        <button
-          onClick={handleSignOut}
-          className="text-sm text-stone-500 hover:text-stone-700 transition-colors"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-4">
+          <Link href="/profile" className="text-sm text-stone-500 hover:text-stone-700 transition-colors">
+            Profile
+          </Link>
+          <button
+            onClick={handleSignOut}
+            className="text-sm text-stone-500 hover:text-stone-700 transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
       ) : (
         <div className="flex items-center gap-3">
           <Link href="/auth?tab=signup" className="text-sm text-stone-500 hover:text-stone-700 transition-colors">
