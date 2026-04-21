@@ -224,10 +224,10 @@ function PostForm() {
                 <button
                   key={option.value}
                   onClick={() => setSupportType(supportType === option.value ? '' : option.value)}
-                  className={'w-full text-left py-3 px-4 rounded-xl border transition-colors ' + (
+                  className={'w-full text-left py-3 px-4 rounded-xl border transition ' + (
                     supportType === option.value
                       ? 'border-stone-800 bg-stone-100 text-stone-800'
-                      : 'border-stone-200 bg-white hover:border-stone-800'
+                      : 'border-stone-200 bg-white hover:shadow-md transition-shadow'
                   )}
                 >
                   <p className="font-medium text-sm">{option.label}</p>
