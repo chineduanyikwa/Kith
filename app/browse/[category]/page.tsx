@@ -41,7 +41,7 @@ export default async function CategoryFeed({
               <a
                 href={`/browse/${category}/${post.id}${intent ? `?intent=${intent}` : ''}`}
                 key={post.id}
-                className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors"
+                className="block bg-white shadow-card rounded-xl bg-card px-5 py-4 hover:shadow-md transition-shadow"
               >
                 {post.support_type && SUPPORT_LABELS[post.support_type] && (
                   <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full mb-2">

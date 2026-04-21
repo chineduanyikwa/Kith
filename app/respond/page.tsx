@@ -153,7 +153,7 @@ function RespondForm() {
             Back to Post
           </a>
         </div>
-        <div className="bg-white border border-stone-200 rounded-2xl px-6 py-5 mb-6">
+        <div className="bg-white shadow-card rounded-xl bg-card px-6 py-5 mb-6">
           <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-3">
             You are responding to
           </p>
@@ -166,7 +166,7 @@ function RespondForm() {
             {post ? post.content : 'Loading...'}
           </p>
         </div>
-        <div className="bg-stone-50 border border-stone-200 rounded-2xl px-6 py-5 mb-6">
+        <div className="shadow-card rounded-xl bg-card px-6 py-5 mb-6">
           <p className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-3">How to show up well</p>
           <ul className="space-y-1 mb-4">
             <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Listen before advising</span></li>
@@ -196,7 +196,7 @@ function RespondForm() {
               rows={6}
               value={content}
               onChange={(e) => { setContent(e.target.value); if (error) setError('') }}
-              className="w-full bg-white border border-stone-200 rounded-2xl px-5 py-4 text-stone-700 text-sm focus:outline-none focus:border-stone-400 resize-none"
+              className="w-full bg-white shadow-card rounded-xl bg-card px-5 py-4 text-stone-700 text-sm focus:outline-none focus:border-stone-400 resize-none"
             />
             <div className="flex justify-between mt-1">
               {error ? <p className="text-sm text-red-500">{error}</p> : <span />}
@@ -218,7 +218,7 @@ function RespondForm() {
           </div>
 
           {showCheck ? (
-            <div className="bg-white border border-stone-200 rounded-2xl px-6 py-5 mt-4">
+            <div className="bg-white shadow-card rounded-xl bg-card px-6 py-5 mt-4">
               <p className="text-sm font-medium text-stone-700 mb-4">Does this help them feel less alone?</p>
               <div className="flex gap-3">
                 <button

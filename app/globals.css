@@ -1,16 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf8f3;
-  --foreground: #1c1917;
+  --background: #FAFAF7;
+  --foreground: #1a1a1a;
+  --muted: #6b7280;
+  --border: #e5e5e0;
+  --card: #FFFFFF;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-card: var(--card);
   --font-sans: var(--font-jakarta);
 
-  --color-stone-50: #faf8f3;
+  --color-stone-50: #FAFAF7;
   --color-stone-100: #f4efe4;
   --color-stone-200: #ece5d6;
   --color-stone-300: #d8cfbc;
@@ -20,14 +26,14 @@
   --color-stone-700: #44403c;
   --color-stone-800: #2a2622;
 
-  --shadow-card: 0 1px 2px rgba(68, 56, 34, 0.04), 0 0 0 1px rgba(68, 56, 34, 0.02);
-}
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+
+  --spacing-section: 32px;
+  --spacing-card-x: 24px;
+  --spacing-card-y: 20px;
 }
 
 body {

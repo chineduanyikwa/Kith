@@ -83,7 +83,7 @@ export default function AdminPage() {
         ) : (
           <div className="space-y-4">
             {reports.map((report) => (
-              <div key={report.id} className="bg-white border border-stone-200 rounded-2xl px-5 py-4">
+              <div key={report.id} className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-medium bg-stone-100 text-stone-500 px-2 py-1 rounded-full">
                     {report.target_type}

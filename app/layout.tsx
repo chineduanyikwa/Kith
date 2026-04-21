@@ -25,7 +25,7 @@ export default function RootLayout({
     >
       <body>
         <Header />
-        <main>
+        <main className="max-w-[680px] mx-auto">
           {children}
         </main>
       </body>
