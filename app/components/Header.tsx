@@ -32,12 +32,12 @@ export default function Header() {
         <div className="w-32 h-8" />
       ) : loggedIn ? (
         <div className="flex items-center gap-4">
-          <Link href="/profile" className="text-sm text-stone-500 hover:text-stone-700 transition-colors">
+          <Link href="/profile" className="inline-flex items-center text-sm leading-none text-stone-500 hover:text-stone-700 transition-colors">
             Profile
           </Link>
           <button
             onClick={handleSignOut}
-            className="text-sm text-stone-500 hover:text-stone-700 transition-colors"
+            className="inline-flex items-center text-sm leading-none text-stone-500 hover:text-stone-700 transition-colors"
           >
             Sign out
           </button>
