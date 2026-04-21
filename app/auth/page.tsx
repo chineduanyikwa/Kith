@@ -128,7 +128,10 @@ function AuthForm() {
   return (
     <main className="min-h-screen bg-stone-50 px-6 py-8">
       <div className="max-w-md mx-auto pt-12">
-        <h1 className="text-2xl font-bold text-stone-800 mb-6 text-center">Welcome to Kith</h1>
+        <h1 className="text-2xl font-bold text-stone-800 mb-2 text-center">Welcome to Kith</h1>
+        <p className="text-stone-500 text-sm text-center mb-6 leading-relaxed">
+          You can come here to talk, to listen, or to do both. You don't have to decide now.
+        </p>
 
         <div className="bg-white border border-stone-200 rounded-2xl px-6 py-6">
           <div className="flex border-b border-stone-200 mb-6">

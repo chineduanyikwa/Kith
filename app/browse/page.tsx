@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
 export default async function Browse({
@@ -35,6 +36,17 @@ export default async function Browse({
           </h1>
           <p className="text-stone-500 mt-2">
             {intent === "talk" ? "Choose a space and speak freely." : "Choose a space that feels right."}
+          </p>
+          <p className="text-sm text-stone-400 mt-3">
+            {intent === "talk" ? (
+              <>
+                Want to <Link href="/browse?intent=help" className="text-stone-600 underline-offset-2 hover:text-stone-800 hover:underline">help instead</Link>?
+              </>
+            ) : (
+              <>
+                <Link href="/browse?intent=talk" className="text-stone-600 underline-offset-2 hover:text-stone-800 hover:underline">Need to talk instead</Link>? That's okay too.
+              </>
+            )}
           </p>
         </div>
         <div className="space-y-3">
