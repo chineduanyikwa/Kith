@@ -110,7 +110,7 @@ export default function ProfilePage() {
               return (
                 <div
                   key={post.id}
-                  className="bg-white border border-stone-200 rounded-2xl px-5 py-4"
+                  className="bg-white shadow-card rounded-xl bg-card px-5 py-4"
                 >
                   <div className="flex flex-wrap gap-2 mb-2">
                     <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full">

@@ -59,7 +59,7 @@ export default async function Browse({
               <a
                 key={category.name}
                 href={href}
-                className="block bg-white border border-stone-200 rounded-2xl px-5 py-4 hover:border-stone-400 transition-colors"
+                className="block bg-white shadow-card rounded-xl bg-card px-5 py-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-stone-800">{category.name}</span>

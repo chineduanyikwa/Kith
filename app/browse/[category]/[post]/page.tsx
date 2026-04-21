@@ -116,7 +116,7 @@ export default function PostPage({
           Back to {categoryName}
         </a>
 
-        <div className="bg-white border border-stone-200 rounded-2xl px-5 py-4 mt-6">
+        <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4 mt-6">
           {post.support_type && SUPPORT_LABELS[post.support_type] && (
             <span className="inline-block text-xs font-medium bg-stone-100 text-stone-500 px-2 py-1 rounded-full mb-3">
               Needs: {SUPPORT_LABELS[post.support_type]}
@@ -139,7 +139,7 @@ export default function PostPage({
         <div className="space-y-3 mt-4">
           {responses.length > 0 ? (
             responses.map((response) => (
-              <div key={response.id} className="bg-white border border-stone-200 rounded-2xl px-5 py-4">
+              <div key={response.id} className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
                 <p className="text-stone-700 text-base leading-relaxed">{response.content}</p>
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex items-center gap-2">
