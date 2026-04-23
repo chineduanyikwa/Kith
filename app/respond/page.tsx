@@ -30,6 +30,7 @@ function RespondForm() {
   const [hideUsername, setHideUsername] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [rateLimitError, setRateLimitError] = useState('')
   const [showCheck, setShowCheck] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [username, setUsername] = useState<string | null>(null)
@@ -107,6 +108,7 @@ function RespondForm() {
 
   async function handleSubmit() {
     setShowCheck(false)
+    setRateLimitError('')
 
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     if (!currentUser) {
@@ -121,6 +123,19 @@ function RespondForm() {
     }
 
     setLoading(true)
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { count: recentCount } = await supabase
+      .from('responses')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', currentUser.id)
+      .gt('created_at', oneHourAgo)
+    if ((recentCount ?? 0) >= 10) {
+      setLoading(false)
+      setRateLimitError("You've been showing up a lot today. Rest a little and come back.")
+      return
+    }
+
     const { error } = await supabase.from('responses').insert({
       content: content.trim(),
       post_id: parseInt(postId),
@@ -240,6 +255,10 @@ function RespondForm() {
             <button onClick={handleAddVoice} className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors mt-4">
               Add your voice
             </button>
+          )}
+
+          {rateLimitError && (
+            <p className="text-sm text-red-500 text-center">{rateLimitError}</p>
           )}
         </div>
       </div>

@@ -37,6 +37,7 @@ function PostForm() {
   const [supportType, setSupportType] = useState('');
   const [hideUsername, setHideUsername] = useState(false);
   const [error, setError] = useState('');
+  const [rateLimitError, setRateLimitError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCrisisFollowUp, setShowCrisisFollowUp] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -98,6 +99,7 @@ function PostForm() {
       return;
     }
     setError('');
+    setRateLimitError('');
 
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) {
@@ -107,6 +109,19 @@ function PostForm() {
     }
 
     setLoading(true);
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentCount } = await supabase
+      .from('posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', currentUser.id)
+      .gt('created_at', oneHourAgo);
+    if ((recentCount ?? 0) >= 5) {
+      setLoading(false);
+      setRateLimitError("You've shared a lot today. Come back in a little while.");
+      return;
+    }
+
     const { error: dbError } = await supabase.from('posts').insert({
       content,
       category,
@@ -263,6 +278,10 @@ function PostForm() {
           >
             {loading ? 'Posting...' : 'Let it out'}
           </button>
+
+          {rateLimitError && (
+            <p className="text-sm text-red-500 text-center">{rateLimitError}</p>
+          )}
         </div>
       </div>
     </main>
