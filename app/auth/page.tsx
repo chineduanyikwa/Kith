@@ -15,21 +15,25 @@ function AuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [useMagicLink, setUseMagicLink] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        const pendingUsername = localStorage.getItem('kith_pending_username');
-        if (pendingUsername) {
-          await supabase.from('profiles').insert({
-            id: session.user.id,
-            username: pendingUsername,
-          });
-          localStorage.removeItem('kith_pending_username');
+        if (session.user.app_metadata?.provider === 'google') {
+          const { data: existing } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          if (!existing) {
+            const randomUsername = SUGGESTED_USERNAMES[Math.floor(Math.random() * SUGGESTED_USERNAMES.length)];
+            await supabase.from('profiles').insert({
+              id: session.user.id,
+              username: randomUsername,
+            });
+          }
         }
         router.push(next);
       }
@@ -44,19 +48,6 @@ function AuthForm() {
     if (!username.trim()) {
       setError('Please choose a username.');
       setLoading(false);
-      return;
-    }
-
-    if (useMagicLink) {
-      localStorage.setItem('kith_pending_username', username.trim());
-      const { error: otpError } = await supabase.auth.signInWithOtp({ email });
-      setLoading(false);
-      if (otpError) {
-        setError(otpError.message);
-        localStorage.removeItem('kith_pending_username');
-      } else {
-        setSuccessMessage('Check your email for the magic link.');
-      }
       return;
     }
 
@@ -86,17 +77,6 @@ function AuthForm() {
     setError('');
     setLoading(true);
 
-    if (useMagicLink) {
-      const { error: otpError } = await supabase.auth.signInWithOtp({ email });
-      setLoading(false);
-      if (otpError) {
-        setError(otpError.message);
-      } else {
-        setSuccessMessage('Check your email for the magic link.');
-      }
-      return;
-    }
-
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     if (signInError) {
       setError(signInError.message);
@@ -112,17 +92,17 @@ function AuthForm() {
     else handleLogIn();
   }
 
-  if (successMessage) {
-    return (
-      <main className="min-h-screen bg-stone-50 px-6 py-8">
-        <div className="max-w-md mx-auto pt-12">
-          <div className="bg-white shadow-card rounded-xl bg-card px-6 py-8 text-center">
-            <p className="text-stone-800 text-lg font-medium mb-2">Check your email</p>
-            <p className="text-stone-500 text-sm">{successMessage}</p>
-          </div>
-        </div>
-      </main>
-    );
+  async function handleGoogleSignIn() {
+    setError('');
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + next,
+      },
+    });
+    if (oauthError) {
+      setError(oauthError.message);
+    }
   }
 
   return (
@@ -134,6 +114,21 @@ function AuthForm() {
         </p>
 
         <div className="bg-white shadow-card rounded-xl bg-card px-6 py-6">
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full bg-white border border-stone-200 text-stone-700 py-3 px-4 rounded-2xl text-sm font-medium hover:border-stone-400 transition-colors disabled:opacity-40 mb-4"
+          >
+            Continue with Google
+          </button>
+
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex-1 h-px bg-stone-200" />
+            <span className="text-xs text-stone-400">or</span>
+            <div className="flex-1 h-px bg-stone-200" />
+          </div>
+
           <div className="flex border-b border-stone-200 mb-6">
             <button
               onClick={() => { setTab('signup'); setError(''); }}
@@ -187,30 +182,17 @@ function AuthForm() {
               />
             </div>
 
-            {!useMagicLink && (
-              <div>
-                <label className="text-sm font-medium text-stone-600 block mb-1">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required={!useMagicLink}
-                  className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-stone-700 text-sm focus:outline-none focus:border-stone-400"
-                />
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setUseMagicLink(!useMagicLink)}
-              className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-700 transition-colors"
-            >
-              <div className={'w-4 h-4 rounded border-2 flex items-center justify-center ' + (useMagicLink ? 'border-stone-800 bg-stone-800' : 'border-stone-300')}>
-                {useMagicLink && <span className="text-white text-xs">✓</span>}
-              </div>
-              Send magic link instead
-            </button>
+            <div>
+              <label className="text-sm font-medium text-stone-600 block mb-1">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-stone-700 text-sm focus:outline-none focus:border-stone-400"
+              />
+            </div>
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
