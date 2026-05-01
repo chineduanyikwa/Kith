@@ -221,6 +221,18 @@ function RespondForm() {
         setError(check.reason)
         return
       }
+    } else {
+      const { count: existingTopLevel } = await supabase
+        .from('responses')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', parseInt(postId))
+        .eq('user_id', currentUser.id)
+        .is('parent_id', null)
+      if ((existingTopLevel ?? 0) > 0) {
+        setLoading(false)
+        setError('You have already responded here. Continue the conversation by replying within your existing thread.')
+        return
+      }
     }
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
