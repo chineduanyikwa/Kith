@@ -20,22 +20,23 @@ type Post = {
   created_at: string;
 };
 
-type ResponseRow = {
-  id: number;
-  content: string;
-  post_id: number;
-  parent_id: number | null;
-  anonymous: boolean;
-  created_at: string;
+type PostItem = Post & {
+  responseCount: number;
+  recency: number;
 };
 
-type PostRef = { id: number; content: string; category: string };
-type ParentRef = { id: number; anonymous: boolean; username: string | null };
-
-type ResponseItem = ResponseRow & {
-  post: PostRef | null;
-  externalParent: ParentRef | null;
-  children: ResponseItem[];
+type ResponseItem = {
+  id: number;
+  content: string;
+  created_at: string;
+  recency: number;
+  post: {
+    id: number;
+    content: string;
+    category: string;
+    authorUsername: string | null;
+    authorAnonymous: boolean;
+  };
 };
 
 function formatCategory(slug: string) {
@@ -50,8 +51,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [responseGroups, setResponseGroups] = useState<ResponseItem[]>([]);
+  const [posts, setPosts] = useState<PostItem[]>([]);
+  const [responses, setResponses] = useState<ResponseItem[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
@@ -62,102 +63,145 @@ export default function ProfilePage() {
         router.push('/auth?next=' + encodeURIComponent('/profile'));
         return;
       }
-      setUserId(currentUser.id);
+      const me = currentUser.id;
+      setUserId(me);
 
       const { data: profile } = await supabase
         .from('profiles')
         .select('username')
-        .eq('id', currentUser.id)
+        .eq('id', me)
         .single();
       if (profile) setUsername(profile.username);
 
+      // Section 1: my posts
       const { data: postsData } = await supabase
         .from('posts')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
-      if (postsData) setPosts(postsData as Post[]);
+        .select('id, content, category, support_type, created_at')
+        .eq('user_id', me);
+      const myPosts = (postsData ?? []) as Post[];
 
+      // Section 2: my top-level responses (parent_id null)
       const { data: respData } = await supabase
         .from('responses')
-        .select('id, content, post_id, parent_id, anonymous, created_at')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
-      const myResponses = (respData ?? []) as ResponseRow[];
+        .select('id, content, post_id, created_at')
+        .eq('user_id', me)
+        .is('parent_id', null);
+      type MyTopResp = { id: number; content: string; post_id: number; created_at: string };
+      const myTopResp = (respData ?? []) as MyTopResp[];
 
-      const postIds = Array.from(new Set(myResponses.map((r) => r.post_id)));
-      const { data: postsForResp } = postIds.length
+      // Fetch posts referenced by my top-level responses to filter out my own posts
+      // and to get the post preview, category, and author.
+      const respPostIds = Array.from(new Set(myTopResp.map((r) => r.post_id)));
+      type PostForResp = {
+        id: number;
+        content: string;
+        category: string;
+        user_id: string | null;
+        anonymous: boolean;
+        profiles?: { username: string } | { username: string }[] | null;
+      };
+      const { data: respPostsData } = respPostIds.length
         ? await supabase
             .from('posts')
-            .select('id, content, category')
-            .in('id', postIds)
-        : { data: [] as PostRef[] };
-      const postsById = new Map<number, PostRef>(
-        (postsForResp ?? []).map((p) => [p.id, p as PostRef]),
+            .select('id, content, category, user_id, anonymous, profiles!posts_user_id_profiles_fkey(username)')
+            .in('id', respPostIds)
+        : { data: [] as PostForResp[] };
+      const postsForResp = new Map<number, PostForResp>(
+        ((respPostsData ?? []) as PostForResp[]).map((p) => [p.id, p]),
       );
 
-      const myIds = new Set(myResponses.map((r) => r.id));
-      const externalParentIds = Array.from(
-        new Set(
-          myResponses
-            .filter((r) => r.parent_id != null && !myIds.has(r.parent_id))
-            .map((r) => r.parent_id as number),
-        ),
+      // Keep only top-level responses on someone else's post
+      const myTopOnOthers = myTopResp.filter(
+        (r) => (postsForResp.get(r.post_id)?.user_id ?? null) !== me,
       );
-      const { data: extParents } = externalParentIds.length
+
+      // Fetch every response on the involved posts (mine + posts I responded to)
+      // so we can compute response counts and subtree recency.
+      const involvedPostIds = Array.from(
+        new Set<number>([...myPosts.map((p) => p.id), ...myTopOnOthers.map((r) => r.post_id)]),
+      );
+      type AnyResp = { id: number; post_id: number; parent_id: number | null; created_at: string };
+      const { data: allRespData } = involvedPostIds.length
         ? await supabase
             .from('responses')
-            .select('id, anonymous, profiles!responses_user_id_profiles_fkey(username)')
-            .in('id', externalParentIds)
-        : { data: [] };
-      type ExtParentRow = { id: number; anonymous: boolean; profiles?: { username: string } | { username: string }[] | null };
-      const externalParentsById = new Map<number, ParentRef>(
-        ((extParents ?? []) as ExtParentRow[]).map((p) => {
-          const profileField = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
-          return [p.id, { id: p.id, anonymous: p.anonymous, username: profileField?.username ?? null }];
-        }),
-      );
+            .select('id, post_id, parent_id, created_at')
+            .in('post_id', involvedPostIds)
+        : { data: [] as AnyResp[] };
+      const allResp = (allRespData ?? []) as AnyResp[];
 
-      const childrenByParent = new Map<number, ResponseRow[]>();
-      for (const r of myResponses) {
-        if (r.parent_id != null && myIds.has(r.parent_id)) {
+      // Build childrenByParent for subtree walks
+      const childrenByParent = new Map<number, AnyResp[]>();
+      for (const r of allResp) {
+        if (r.parent_id != null) {
           const arr = childrenByParent.get(r.parent_id) ?? [];
           arr.push(r);
           childrenByParent.set(r.parent_id, arr);
         }
       }
-      for (const arr of childrenByParent.values()) {
-        arr.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      }
-
-      const decorate = (r: ResponseRow): ResponseItem => ({
-        ...r,
-        post: postsById.get(r.post_id) ?? null,
-        externalParent:
-          r.parent_id != null && !myIds.has(r.parent_id)
-            ? externalParentsById.get(r.parent_id) ?? null
-            : null,
-        children: (childrenByParent.get(r.id) ?? []).map(decorate),
-      });
-
-      const tops = myResponses
-        .filter((r) => !(r.parent_id != null && myIds.has(r.parent_id)))
-        .map(decorate);
-
-      const recency = (item: ResponseItem): number => {
-        const self = new Date(item.created_at).getTime();
-        const childMax = item.children.reduce((m, c) => Math.max(m, recency(c)), 0);
-        return Math.max(self, childMax);
+      const subtreeMaxTime = (rootId: number, baseTime: number): number => {
+        let max = baseTime;
+        const stack: number[] = [rootId];
+        while (stack.length) {
+          const cur = stack.pop() as number;
+          const kids = childrenByParent.get(cur) ?? [];
+          for (const k of kids) {
+            const t = new Date(k.created_at).getTime();
+            if (t > max) max = t;
+            stack.push(k.id);
+          }
+        }
+        return max;
       };
-      tops.sort((a, b) => recency(b) - recency(a));
 
-      setResponseGroups(tops);
+      // Section 1 items: top-level response count + activity recency
+      const respByPost = new Map<number, AnyResp[]>();
+      for (const r of allResp) {
+        const arr = respByPost.get(r.post_id) ?? [];
+        arr.push(r);
+        respByPost.set(r.post_id, arr);
+      }
+      const postItems: PostItem[] = myPosts.map((p) => {
+        const onPost = respByPost.get(p.id) ?? [];
+        const responseCount = onPost.filter((r) => r.parent_id == null).length;
+        const postTime = new Date(p.created_at).getTime();
+        const activityMax = onPost.reduce(
+          (m, r) => Math.max(m, new Date(r.created_at).getTime()),
+          postTime,
+        );
+        return { ...p, responseCount, recency: activityMax };
+      });
+      postItems.sort((a, b) => b.recency - a.recency);
+
+      // Section 2 items: own thread continuation = subtree of my top-level response
+      const responseItems: ResponseItem[] = myTopOnOthers.map((r) => {
+        const post = postsForResp.get(r.post_id) as PostForResp;
+        const profileField = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
+        const authorUsername = profileField?.username ?? null;
+        const selfTime = new Date(r.created_at).getTime();
+        return {
+          id: r.id,
+          content: r.content,
+          created_at: r.created_at,
+          recency: subtreeMaxTime(r.id, selfTime),
+          post: {
+            id: post.id,
+            content: post.content,
+            category: post.category,
+            authorUsername,
+            authorAnonymous: post.anonymous,
+          },
+        };
+      });
+      responseItems.sort((a, b) => b.recency - a.recency);
+
+      setPosts(postItems);
+      setResponses(responseItems);
       setReady(true);
     }
     init();
   }, [router]);
 
-  async function handleDelete(postId: number) {
+  async function handleDeletePost(postId: number) {
     if (!userId) return;
     if (!window.confirm('Delete this post? This cannot be undone.')) return;
 
@@ -190,11 +234,7 @@ export default function ProfilePage() {
       return;
     }
     setError('');
-    const stripDeleted = (items: ResponseItem[]): ResponseItem[] =>
-      items
-        .filter((r) => r.id !== responseId)
-        .map((r) => ({ ...r, children: stripDeleted(r.children) }));
-    setResponseGroups((prev) => stripDeleted(prev));
+    setResponses((prev) => prev.filter((r) => r.id !== responseId));
   }
 
   if (!ready) {
@@ -206,67 +246,6 @@ export default function ProfilePage() {
       </main>
     );
   }
-
-  const renderResponse = (item: ResponseItem, isNested: boolean) => {
-    const href = item.post ? `/browse/${item.post.category}/${item.post.id}` : '#';
-    const isReply = item.parent_id != null;
-    const parentLabel = item.externalParent
-      ? (item.externalParent.anonymous
-        ? 'Anonymous'
-        : item.externalParent.username
-          ? '@' + item.externalParent.username
-          : 'A member of Kith')
-      : null;
-
-    return (
-      <div
-        key={item.id}
-        className={isNested ? 'mt-3 pl-4 border-l-2 border-stone-200' : ''}
-      >
-        <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
-          {item.post && (
-            <div className="mb-3">
-              <div className="flex flex-wrap gap-2 mb-2">
-                <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full">
-                  {formatCategory(item.post.category)}
-                </span>
-                {isReply && !isNested && (
-                  <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full">
-                    ↳ Reply
-                  </span>
-                )}
-                {isReply && isNested && (
-                  <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full">
-                    ↳ Your reply
-                  </span>
-                )}
-              </div>
-              <a
-                href={href}
-                className="block text-xs text-stone-400 hover:text-stone-600 transition-colors leading-relaxed"
-              >
-                On: {truncate(item.post.content, 80)}
-              </a>
-              {parentLabel && (
-                <p className="text-xs text-stone-400 mt-1">Replying to {parentLabel}</p>
-              )}
-            </div>
-          )}
-          <p className="text-stone-700 text-sm leading-relaxed">{item.content}</p>
-          <div className="flex items-center justify-between mt-3">
-            <span className="text-xs text-stone-400">{new Date(item.created_at).toLocaleDateString()}</span>
-            <button
-              onClick={() => handleDeleteResponse(item.id)}
-              className="text-xs text-stone-400 hover:text-red-500 transition-colors"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-        {item.children.map((child) => renderResponse(child, true))}
-      </div>
-    );
-  };
 
   return (
     <main className="min-h-screen bg-stone-50 px-6 py-10">
@@ -287,26 +266,39 @@ export default function ProfilePage() {
           {posts.length > 0 ? (
             posts.map((post) => {
               const preview = post.content.length > 160 ? post.content.slice(0, 160) + '…' : post.content;
+              const href = `/browse/${post.category}/${post.id}`;
+              const showedUp =
+                post.responseCount === 0
+                  ? 'No one yet'
+                  : post.responseCount === 1
+                  ? '1 person showed up'
+                  : `${post.responseCount} people showed up`;
               return (
                 <div
                   key={post.id}
                   className="bg-white shadow-card rounded-xl bg-card px-5 py-4"
                 >
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full">
-                      {formatCategory(post.category)}
-                    </span>
-                    {post.support_type && SUPPORT_LABELS[post.support_type] && (
+                  <a href={href} className="block">
+                    <div className="flex flex-wrap gap-2 mb-2">
                       <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full">
-                        Needs: {SUPPORT_LABELS[post.support_type]}
+                        {formatCategory(post.category)}
                       </span>
-                    )}
-                  </div>
-                  <p className="text-stone-700 text-sm leading-relaxed">{preview}</p>
+                      {post.support_type && SUPPORT_LABELS[post.support_type] && (
+                        <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full">
+                          Needs: {SUPPORT_LABELS[post.support_type]}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-stone-700 text-sm leading-relaxed">{preview}</p>
+                  </a>
                   <div className="flex items-center justify-between mt-3">
-                    <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
+                      <span className="text-stone-300 text-xs">·</span>
+                      <span className="text-xs text-stone-400">{showedUp}</span>
+                    </div>
                     <button
-                      onClick={() => handleDelete(post.id)}
+                      onClick={() => handleDeletePost(post.id)}
                       className="text-xs text-stone-400 hover:text-red-500 transition-colors"
                     >
                       Delete
@@ -317,7 +309,7 @@ export default function ProfilePage() {
             })
           ) : (
             <div className="text-center py-12">
-              <p className="text-stone-400 text-sm">You haven't posted anything yet.</p>
+              <p className="text-stone-400 text-sm">You haven&apos;t shared anything yet.</p>
               <a href="/browse?intent=talk" className="text-stone-400 text-sm mt-1 inline-block hover:text-stone-600">
                 Find a space to speak.
               </a>
@@ -329,11 +321,45 @@ export default function ProfilePage() {
           <h2 className="text-sm font-medium text-stone-500 mb-3">Your responses</h2>
 
           <div className="space-y-3">
-            {responseGroups.length > 0 ? (
-              responseGroups.map((item) => renderResponse(item, false))
+            {responses.length > 0 ? (
+              responses.map((item) => {
+                const href = `/browse/${item.post.category}/${item.post.id}`;
+                const authorLabel = item.post.authorAnonymous
+                  ? 'Anonymous'
+                  : item.post.authorUsername
+                  ? '@' + item.post.authorUsername
+                  : 'A member of Kith';
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white shadow-card rounded-xl bg-card px-5 py-4"
+                  >
+                    <a href={href} className="block">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full">
+                          {formatCategory(item.post.category)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-stone-400 leading-relaxed">
+                        On {authorLabel}: {truncate(item.post.content, 80)}
+                      </p>
+                      <p className="text-stone-700 text-sm leading-relaxed mt-2">{item.content}</p>
+                    </a>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs text-stone-400">{new Date(item.created_at).toLocaleDateString()}</span>
+                      <button
+                        onClick={() => handleDeleteResponse(item.id)}
+                        className="text-xs text-stone-400 hover:text-red-500 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             ) : (
               <div className="text-center py-12">
-                <p className="text-stone-400 text-sm">You haven&apos;t responded to anyone yet.</p>
+                <p className="text-stone-400 text-sm">You haven&apos;t shown up for anyone yet.</p>
                 <a href="/browse?intent=help" className="text-stone-400 text-sm mt-1 inline-block hover:text-stone-600">
                   Find someone to show up for.
                 </a>
