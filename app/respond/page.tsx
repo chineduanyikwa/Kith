@@ -51,29 +51,32 @@ async function isReplyAllowed(
     return { ok: false, reason: 'Someone has already replied to this.' }
   }
 
-  if (parent.parent_id == null) {
-    if (currentUserId !== postAuthorId) {
-      return { ok: false, reason: 'Only the original poster can reply here.' }
-    }
-    if (parent.user_id === postAuthorId) {
-      return { ok: false, reason: 'You cannot reply to your own response.' }
-    }
-    return { ok: true }
+  // Walk up the parent chain to find the top-level response, whose author is the
+  // helper for this thread. The thread is strictly between postAuthorId and that
+  // helper, with strict alternation.
+  type ChainRow = { id: number; user_id: string | null; parent_id: number | null }
+  let cursor: ChainRow = parent as ChainRow
+  while (cursor.parent_id != null) {
+    const result = await supabase
+      .from('responses')
+      .select('id, user_id, parent_id')
+      .eq('id', cursor.parent_id)
+      .single<ChainRow>()
+    if (!result.data) return { ok: false, reason: 'Could not load this thread.' }
+    cursor = result.data
   }
+  const helperId = cursor.user_id
+  if (!helperId) return { ok: false, reason: 'Could not load this thread.' }
 
-  const { data: grand } = await supabase
-    .from('responses')
-    .select('id, user_id, parent_id')
-    .eq('id', parent.parent_id)
-    .single()
-  if (!grand || grand.parent_id != null) {
-    return { ok: false, reason: 'Replies cannot go any deeper here.' }
+  const participants = new Set([postAuthorId, helperId])
+  if (!participants.has(currentUserId)) {
+    return { ok: false, reason: 'Only the two people in this thread can reply.' }
   }
-  if (parent.user_id !== postAuthorId) {
-    return { ok: false, reason: 'You can only reply to a response from the original poster.' }
+  if (!participants.has(parent.user_id ?? '')) {
+    return { ok: false, reason: 'This thread is between two specific people.' }
   }
-  if (currentUserId !== grand.user_id) {
-    return { ok: false, reason: 'Only the original responder can reply back here.' }
+  if (parent.user_id === currentUserId) {
+    return { ok: false, reason: 'You cannot reply to your own response.' }
   }
   return { ok: true }
 }
