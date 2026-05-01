@@ -60,6 +60,7 @@ export default function PostPage({
   const [loading, setLoading] = useState(true);
   const [respondHref, setRespondHref] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [hasOwnTopLevel, setHasOwnTopLevel] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -135,6 +136,9 @@ export default function PostPage({
 
       const topLevel = all.filter((r) => r.parent_id == null).map(decorate);
 
+      setHasOwnTopLevel(
+        userId != null && all.some((r) => r.parent_id == null && r.user_id === userId),
+      );
       setPost(postData);
       setTree(topLevel);
       setTopLevelCount(topLevel.length);
@@ -229,7 +233,7 @@ export default function PostPage({
           )}
         </div>
 
-        {(!currentUserId || currentUserId !== post.user_id) && (
+        {(!currentUserId || (currentUserId !== post.user_id && !hasOwnTopLevel)) && (
           <a href={respondHref} className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6">
             Respond to this
           </a>
