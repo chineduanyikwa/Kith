@@ -88,17 +88,26 @@ export default function PostPage({
       const postAuthorId = postData?.user_id ?? null;
       const childrenOf = (id: number) => all.some((r) => r.parent_id === id);
 
+      const byId = new Map<number, ResponseRow>(all.map((r) => [r.id, r]));
+      const threadHelperOf = (r: ResponseRow): string | null => {
+        let cur: ResponseRow | undefined = r;
+        while (cur && cur.parent_id != null) {
+          cur = byId.get(cur.parent_id);
+        }
+        return cur ? cur.user_id : null;
+      };
+
       const canReplyTo = (r: ResponseRow): boolean => {
         if (!userId || !postAuthorId) return false;
         if (childrenOf(r.id)) return false;
-        if (r.parent_id == null) {
-          // Top-level (helper) response. Only the post author may reply.
-          return userId === postAuthorId && r.user_id !== postAuthorId;
-        }
-        const parent = all.find((x) => x.id === r.parent_id);
-        if (!parent || parent.parent_id != null) return false;
-        // r is the post-author's reply at depth 2; the original helper may reply back.
-        return r.user_id === postAuthorId && userId === parent.user_id;
+        const helperId = threadHelperOf(r);
+        if (!helperId) return false;
+        // Thread is strictly between postAuthor and helperId; alternation requires
+        // the current user to be one participant and r.user_id to be the other.
+        const participants = new Set([postAuthorId, helperId]);
+        if (!participants.has(userId)) return false;
+        if (!participants.has(r.user_id ?? '')) return false;
+        return r.user_id !== userId;
       };
 
       const decorate = (r: ResponseRow): ResponseNode => {
