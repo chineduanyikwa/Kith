@@ -20,12 +20,74 @@ const STARTER_PROMPTS = [
   "You don't have to carry this alone.",
 ]
 
+type ParentResponse = {
+  id: number
+  content: string
+  user_id: string | null
+  parent_id: number | null
+  anonymous: boolean
+  profiles?: { username: string } | null
+}
+
+async function isReplyAllowed(
+  parentId: number,
+  postAuthorId: string | null | undefined,
+  currentUserId: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (!postAuthorId) return { ok: false, reason: 'Could not load this thread.' }
+
+  const { data: parent } = await supabase
+    .from('responses')
+    .select('id, user_id, parent_id')
+    .eq('id', parentId)
+    .single()
+  if (!parent) return { ok: false, reason: 'The response you are replying to could not be found.' }
+
+  const { count: existingChildren } = await supabase
+    .from('responses')
+    .select('*', { count: 'exact', head: true })
+    .eq('parent_id', parentId)
+  if ((existingChildren ?? 0) > 0) {
+    return { ok: false, reason: 'Someone has already replied to this.' }
+  }
+
+  if (parent.parent_id == null) {
+    if (currentUserId !== postAuthorId) {
+      return { ok: false, reason: 'Only the original poster can reply here.' }
+    }
+    if (parent.user_id === postAuthorId) {
+      return { ok: false, reason: 'You cannot reply to your own response.' }
+    }
+    return { ok: true }
+  }
+
+  const { data: grand } = await supabase
+    .from('responses')
+    .select('id, user_id, parent_id')
+    .eq('id', parent.parent_id)
+    .single()
+  if (!grand || grand.parent_id != null) {
+    return { ok: false, reason: 'Replies cannot go any deeper here.' }
+  }
+  if (parent.user_id !== postAuthorId) {
+    return { ok: false, reason: 'You can only reply to a response from the original poster.' }
+  }
+  if (currentUserId !== grand.user_id) {
+    return { ok: false, reason: 'Only the original responder can reply back here.' }
+  }
+  return { ok: true }
+}
+
 function RespondForm() {
   const searchParams = useSearchParams()
   const postId = searchParams.get('post_id') || ''
   const category = searchParams.get('category') || ''
+  const parentIdParam = searchParams.get('parent_id')
+  const parentId = parentIdParam ? parseInt(parentIdParam) : null
+  const isReplyMode = parentId !== null && !Number.isNaN(parentId)
 
-  const [post, setPost] = useState<{ content: string; anonymous: boolean; support_type?: string } | null>(null)
+  const [post, setPost] = useState<{ content: string; anonymous: boolean; support_type?: string; user_id?: string | null } | null>(null)
+  const [parent, setParent] = useState<ParentResponse | null>(null)
   const [content, setContent] = useState('')
   const [hideUsername, setHideUsername] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -44,13 +106,26 @@ function RespondForm() {
     async function loadPost() {
       const { data } = await supabase
         .from('posts')
-        .select('content, anonymous, support_type')
+        .select('content, anonymous, support_type, user_id')
         .eq('id', postId)
         .single()
       if (data) setPost(data)
     }
     if (postId) loadPost()
   }, [postId])
+
+  useEffect(() => {
+    async function loadParent() {
+      if (!isReplyMode || parentId === null) return
+      const { data } = await supabase
+        .from('responses')
+        .select('id, content, user_id, parent_id, anonymous, profiles!responses_user_id_profiles_fkey(username)')
+        .eq('id', parentId)
+        .single<ParentResponse>()
+      if (data) setParent(data)
+    }
+    loadParent()
+  }, [isReplyMode, parentId])
 
   useEffect(() => {
     async function init() {
@@ -70,12 +145,14 @@ function RespondForm() {
         localStorage.removeItem('kith_pending_response')
         const saved = JSON.parse(pending)
         setAutoSubmitting(true)
-        const { error } = await supabase.from('responses').insert({
+        const insert: Record<string, unknown> = {
           content: saved.content,
           post_id: parseInt(saved.postId),
           anonymous: saved.hideUsername ?? false,
           user_id: currentUser.id,
-        })
+        }
+        if (saved.parentId) insert.parent_id = parseInt(saved.parentId)
+        const { error } = await supabase.from('responses').insert(insert)
         if (error) {
           console.error(error)
           setAutoSubmitting(false)
@@ -117,12 +194,23 @@ function RespondForm() {
         postId,
         category,
         hideUsername,
+        parentId: isReplyMode ? String(parentId) : undefined,
       }))
-      router.push('/auth?next=' + encodeURIComponent(`/respond?post_id=${postId}&category=${category}`))
+      const replyParam = isReplyMode ? `&parent_id=${parentId}` : ''
+      router.push('/auth?next=' + encodeURIComponent(`/respond?post_id=${postId}&category=${category}${replyParam}`))
       return
     }
 
     setLoading(true)
+
+    if (isReplyMode && parentId !== null) {
+      const check = await isReplyAllowed(parentId, post?.user_id ?? null, currentUser.id)
+      if (!check.ok) {
+        setLoading(false)
+        setError(check.reason)
+        return
+      }
+    }
 
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     const { count: recentCount } = await supabase
@@ -136,12 +224,15 @@ function RespondForm() {
       return
     }
 
-    const { error } = await supabase.from('responses').insert({
+    const insert: Record<string, unknown> = {
       content: content.trim(),
       post_id: parseInt(postId),
       anonymous: hideUsername,
       user_id: currentUser.id,
-    })
+    }
+    if (isReplyMode && parentId !== null) insert.parent_id = parentId
+
+    const { error } = await supabase.from('responses').insert(insert)
     if (error) {
       console.error(error)
       setLoading(false)
@@ -168,46 +259,64 @@ function RespondForm() {
             Back to Post
           </a>
         </div>
-        <div className="bg-white shadow-card rounded-xl bg-card px-6 py-5 mb-6">
-          <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-3">
-            You are responding to
-          </p>
-          {post?.support_type && SUPPORT_LABELS[post.support_type] && (
-            <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full mb-3">
-              Needs: {SUPPORT_LABELS[post.support_type]}
-            </span>
-          )}
-          <p className="text-stone-700 text-sm leading-relaxed">
-            {post ? post.content : 'Loading...'}
-          </p>
-        </div>
-        <div className="shadow-card rounded-xl bg-card px-6 py-5 mb-6">
-          <p className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-3">How to show up well</p>
-          <ul className="space-y-1 mb-4">
-            <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Listen before advising</span></li>
-            <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Do not judge or shame</span></li>
-            <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Do not diagnose</span></li>
-            <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Do not make promises</span></li>
-            <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Help them feel less alone</span></li>
-          </ul>
-          <p className="text-xs text-stone-400 mb-2">A few ways to begin:</p>
-          <div className="flex flex-wrap gap-2">
-            {STARTER_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                onClick={() => setContent((prev) => prev ? prev + ' ' + prompt : prompt)}
-                className="text-xs bg-white border border-stone-200 text-stone-500 px-3 py-1.5 rounded-full hover:border-stone-400 transition-colors"
-              >
-                {prompt}
-              </button>
-            ))}
+        {isReplyMode ? (
+          <div className="bg-white shadow-card rounded-xl bg-card px-6 py-5 mb-6">
+            <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-3">
+              Replying to
+            </p>
+            <p className="text-stone-700 text-sm leading-relaxed">
+              {parent ? parent.content : 'Loading...'}
+            </p>
+            {parent && (
+              <p className="text-xs text-stone-400 mt-3">
+                {parent.anonymous ? 'Anonymous' : (parent.profiles?.username ?? 'A member of Kith')}
+              </p>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="bg-white shadow-card rounded-xl bg-card px-6 py-5 mb-6">
+            <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-3">
+              You are responding to
+            </p>
+            {post?.support_type && SUPPORT_LABELS[post.support_type] && (
+              <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full mb-3">
+                Needs: {SUPPORT_LABELS[post.support_type]}
+              </span>
+            )}
+            <p className="text-stone-700 text-sm leading-relaxed">
+              {post ? post.content : 'Loading...'}
+            </p>
+          </div>
+        )}
+        {!isReplyMode && (
+          <div className="shadow-card rounded-xl bg-card px-6 py-5 mb-6">
+            <p className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-3">How to show up well</p>
+            <ul className="space-y-1 mb-4">
+              <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Listen before advising</span></li>
+              <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Do not judge or shame</span></li>
+              <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Do not diagnose</span></li>
+              <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Do not make promises</span></li>
+              <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Help them feel less alone</span></li>
+            </ul>
+            <p className="text-xs text-stone-400 mb-2">A few ways to begin:</p>
+            <div className="flex flex-wrap gap-2">
+              {STARTER_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => setContent((prev) => prev ? prev + ' ' + prompt : prompt)}
+                  className="text-xs bg-white border border-stone-200 text-stone-500 px-3 py-1.5 rounded-full hover:border-stone-400 transition-colors"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-stone-400 block mb-2">Your response</label>
+            <label className="text-sm font-medium text-stone-400 block mb-2">{isReplyMode ? 'Your reply' : 'Your response'}</label>
             <textarea
-              placeholder="Speak from your experience. Just be present."
+              placeholder={isReplyMode ? 'Reply with care.' : 'Speak from your experience. Just be present.'}
               rows={6}
               value={content}
               onChange={(e) => { setContent(e.target.value); if (error) setError('') }}
@@ -221,14 +330,14 @@ function RespondForm() {
           <div className="pt-2">
             {user && username && (
               <p className="text-sm text-stone-500 mb-2">
-                Responding as <span className="font-medium text-stone-700">{hideUsername ? 'Anonymous' : username}</span>
+                {isReplyMode ? 'Replying' : 'Responding'} as <span className="font-medium text-stone-700">{hideUsername ? 'Anonymous' : username}</span>
               </p>
             )}
             <button onClick={() => setHideUsername(!hideUsername)} className="flex items-center gap-2 text-sm text-stone-500">
               <div className={'w-4 h-4 rounded border-2 flex items-center justify-center ' + (hideUsername ? 'border-stone-800 bg-stone-800' : 'border-stone-300')}>
                 {hideUsername && <span className="text-white text-xs">✓</span>}
               </div>
-              Hide my username for this response
+              Hide my username for this {isReplyMode ? 'reply' : 'response'}
             </button>
           </div>
 
@@ -253,7 +362,7 @@ function RespondForm() {
             </div>
           ) : (
             <button onClick={handleAddVoice} className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors mt-4">
-              Add your voice
+              {isReplyMode ? 'Send reply' : 'Add your voice'}
             </button>
           )}
 

@@ -27,10 +27,18 @@ type ResponseRow = {
   id: number;
   content: string;
   post_id: number;
+  parent_id: number | null;
+  user_id: string | null;
   anonymous: boolean;
   created_at: string;
   profiles?: { username: string } | null;
-  reportHref?: string;
+};
+
+type ResponseNode = ResponseRow & {
+  reportHref: string;
+  replyHref: string;
+  canReply: boolean;
+  children: ResponseNode[];
 };
 
 export default function PostPage({
@@ -47,7 +55,8 @@ export default function PostPage({
     .replace(/\b\w/g, (l) => l.toUpperCase());
 
   const [post, setPost] = useState<Post | null>(null);
-  const [responses, setResponses] = useState<ResponseRow[]>([]);
+  const [tree, setTree] = useState<ResponseNode[]>([]);
+  const [topLevelCount, setTopLevelCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [respondHref, setRespondHref] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -55,7 +64,8 @@ export default function PostPage({
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) setCurrentUserId(user.id);
+      const userId = user?.id ?? null;
+      setCurrentUserId(userId);
 
       const { data: postData } = await supabase
         .from('posts')
@@ -74,13 +84,51 @@ export default function PostPage({
         setRespondHref('/respond?' + p.toString());
       }
 
-      const rows = (responseData ?? []).map((r: ResponseRow) => {
-        const p = new URLSearchParams({ target_type: 'response', target_id: String(r.id), category: category, post_id: String(postId) });
-        return { ...r, reportHref: '/report?' + p.toString() };
-      });
+      const all = (responseData ?? []) as ResponseRow[];
+      const postAuthorId = postData?.user_id ?? null;
+      const childrenOf = (id: number) => all.some((r) => r.parent_id === id);
+
+      const canReplyTo = (r: ResponseRow): boolean => {
+        if (!userId || !postAuthorId) return false;
+        if (childrenOf(r.id)) return false;
+        if (r.parent_id == null) {
+          // Top-level (helper) response. Only the post author may reply.
+          return userId === postAuthorId && r.user_id !== postAuthorId;
+        }
+        const parent = all.find((x) => x.id === r.parent_id);
+        if (!parent || parent.parent_id != null) return false;
+        // r is the post-author's reply at depth 2; the original helper may reply back.
+        return r.user_id === postAuthorId && userId === parent.user_id;
+      };
+
+      const decorate = (r: ResponseRow): ResponseNode => {
+        const reportParams = new URLSearchParams({
+          target_type: 'response',
+          target_id: String(r.id),
+          category,
+          post_id: String(postId),
+        });
+        const replyParams = new URLSearchParams({
+          post_id: String(postId),
+          category,
+          parent_id: String(r.id),
+        });
+        return {
+          ...r,
+          reportHref: '/report?' + reportParams.toString(),
+          replyHref: '/respond?' + replyParams.toString(),
+          canReply: canReplyTo(r),
+          children: all
+            .filter((c) => c.parent_id === r.id)
+            .map(decorate),
+        };
+      };
+
+      const topLevel = all.filter((r) => r.parent_id == null).map(decorate);
 
       setPost(postData);
-      setResponses(rows);
+      setTree(topLevel);
+      setTopLevelCount(topLevel.length);
       setLoading(false);
     }
     load();
@@ -109,6 +157,32 @@ export default function PostPage({
     );
   }
 
+  const renderNode = (node: ResponseNode, depth: number) => (
+    <div key={node.id} className={depth === 0 ? '' : 'mt-3 pl-4 border-l-2 border-stone-200'}>
+      <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
+        <p className="text-stone-700 text-base leading-relaxed">{node.content}</p>
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-stone-400">{node.anonymous ? 'Anonymous' : (node.profiles?.username ?? 'A member of Kith')}</p>
+            <span className="text-stone-300 text-xs">·</span>
+            <span className="text-xs text-stone-400">{new Date(node.created_at).toLocaleDateString()}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {node.canReply && (
+              <a href={node.replyHref} className="text-xs text-stone-500 hover:text-stone-700 transition-colors">
+                Reply
+              </a>
+            )}
+            <a href={node.reportHref} className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+              Report
+            </a>
+          </div>
+        </div>
+      </div>
+      {node.children.map((child) => renderNode(child, depth + 1))}
+    </div>
+  );
+
   return (
     <main className="min-h-screen bg-stone-50 px-4 py-8">
       <div className="max-w-lg mx-auto">
@@ -132,27 +206,13 @@ export default function PostPage({
 
         <div className="mt-4">
           <p className="text-stone-500 text-sm">
-            {responses.length === 1 ? '1 person' : String(responses.length) + ' people'} showed up
+            {topLevelCount === 1 ? '1 person' : String(topLevelCount) + ' people'} showed up
           </p>
         </div>
 
         <div className="space-y-3 mt-4">
-          {responses.length > 0 ? (
-            responses.map((response) => (
-              <div key={response.id} className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
-                <p className="text-stone-700 text-base leading-relaxed">{response.content}</p>
-                <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs text-stone-400">{response.anonymous ? 'Anonymous' : (response.profiles?.username ?? 'A member of Kith')}</p>
-                    <span className="text-stone-300 text-xs">·</span>
-                    <span className="text-xs text-stone-400">{new Date(response.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <a href={response.reportHref} className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
-                    Report
-                  </a>
-                </div>
-              </div>
-            ))
+          {tree.length > 0 ? (
+            tree.map((node) => renderNode(node, 0))
           ) : (
             <div className="text-center py-8">
               <p className="text-stone-400 text-sm">Waiting for someone to show up.</p>
