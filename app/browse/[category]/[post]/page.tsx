@@ -49,10 +49,18 @@ export default function PostPage({
   const { category, post: postId } = use(params);
   const searchParams = useSearchParams();
   const intent = searchParams.get('intent');
-  const backHref = `/browse/${category}${intent ? `?intent=${intent}` : ''}`;
+  const from = searchParams.get('from');
+  const fromProfile = from === 'profile';
   const categoryName = decodeURIComponent(category)
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (l) => l.toUpperCase());
+  const backHref = fromProfile
+    ? '/profile'
+    : `/browse/${category}`;
+  const notFoundBackHref = fromProfile
+    ? '/profile'
+    : `/browse/${category}${intent ? `?intent=${intent}` : ''}`;
+  const backLabel = fromProfile ? 'Back to your profile' : `Back to ${categoryName}`;
 
   const [post, setPost] = useState<Post | null>(null);
   const [tree, setTree] = useState<ResponseNode[]>([]);
@@ -170,8 +178,8 @@ export default function PostPage({
     return (
       <main className="min-h-screen bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto">
-          <a href={backHref} className="text-sm text-stone-500 hover:text-stone-700">
-            Back to {categoryName}
+          <a href={notFoundBackHref} className="text-sm text-stone-500 hover:text-stone-700">
+            {backLabel}
           </a>
           <p className="text-stone-400 mt-4">Post not found.</p>
         </div>
@@ -208,8 +216,8 @@ export default function PostPage({
   return (
     <main className="min-h-screen bg-stone-50 px-4 py-8">
       <div className="max-w-lg mx-auto">
-        <a href={'/browse/' + category} className="text-sm text-stone-500 hover:text-stone-700">
-          Back to {categoryName}
+        <a href={backHref} className="text-sm text-stone-500 hover:text-stone-700">
+          {backLabel}
         </a>
 
         <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4 mt-6">

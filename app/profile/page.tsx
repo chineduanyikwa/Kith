@@ -266,7 +266,7 @@ export default function ProfilePage() {
           {posts.length > 0 ? (
             posts.map((post) => {
               const preview = post.content.length > 160 ? post.content.slice(0, 160) + '…' : post.content;
-              const href = `/browse/${post.category}/${post.id}`;
+              const href = `/browse/${post.category}/${post.id}?from=profile`;
               const showedUp =
                 post.responseCount === 0
                   ? 'No one yet'
@@ -323,7 +323,7 @@ export default function ProfilePage() {
           <div className="space-y-3">
             {responses.length > 0 ? (
               responses.map((item) => {
-                const href = `/browse/${item.post.category}/${item.post.id}`;
+                const href = `/browse/${item.post.category}/${item.post.id}?from=profile`;
                 const authorLabel = item.post.authorAnonymous
                   ? 'Anonymous'
                   : item.post.authorUsername
