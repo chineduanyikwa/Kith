@@ -165,10 +165,14 @@ function RespondForm() {
   }, [router])
 
   const validate = () => {
-    if (content.trim().length < MIN_LENGTH) {
+    const trimmed = content.trim()
+    if (trimmed.length === 0) {
+      return 'Please add a few words.'
+    }
+    if (!isReplyMode && trimmed.length < MIN_LENGTH) {
       return `Please share a little more — at least ${MIN_LENGTH} characters.`
     }
-    if (content.trim().length > MAX_LENGTH) {
+    if (trimmed.length > MAX_LENGTH) {
       return `Please keep your response under ${MAX_LENGTH} characters.`
     }
     return null
@@ -178,6 +182,10 @@ function RespondForm() {
     const validationError = validate()
     if (validationError) {
       setError(validationError)
+      return
+    }
+    if (isReplyMode) {
+      handleSubmit()
       return
     }
     setShowCheck(true)
