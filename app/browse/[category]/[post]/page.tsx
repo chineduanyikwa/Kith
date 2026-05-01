@@ -60,7 +60,7 @@ export default function PostPage({
   const [loading, setLoading] = useState(true);
   const [respondHref, setRespondHref] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [hasOwnTopLevel, setHasOwnTopLevel] = useState(false);
+  const [allResponses, setAllResponses] = useState<ResponseRow[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -136,16 +136,25 @@ export default function PostPage({
 
       const topLevel = all.filter((r) => r.parent_id == null).map(decorate);
 
-      setHasOwnTopLevel(
-        userId != null && all.some((r) => r.parent_id == null && r.user_id === userId),
-      );
+      setAllResponses(all);
       setPost(postData);
       setTree(topLevel);
       setTopLevelCount(topLevel.length);
       setLoading(false);
     }
     load();
+
+    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUserId(session?.user?.id ?? null);
+    });
+    return () => {
+      authSub.subscription.unsubscribe();
+    };
   }, [postId, category]);
+
+  const hasOwnTopLevel =
+    currentUserId != null &&
+    allResponses.some((r) => r.parent_id == null && r.user_id === currentUserId);
 
   if (loading) {
     return (
