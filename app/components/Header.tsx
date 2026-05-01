@@ -15,6 +15,14 @@ export default function Header() {
       setLoggedIn(!!user);
       setReady(true);
     });
+
+    const { data: authSub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLoggedIn(!!session?.user);
+      setReady(true);
+    });
+    return () => {
+      authSub.subscription.unsubscribe();
+    };
   }, []);
 
   async function handleSignOut() {
