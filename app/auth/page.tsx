@@ -73,7 +73,10 @@ function AuthForm() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username: trimmedUsername } },
+      options: {
+        data: { username: trimmedUsername },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
     });
     if (signUpError) {
       setError(signUpError.message);
@@ -195,7 +198,10 @@ function AuthForm() {
                       placeholder="Choose a username"
                       className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-stone-700 text-sm focus:outline-none focus:border-stone-400"
                     />
-                    <div className="flex flex-wrap gap-2 mt-2">
+                    {SUGGESTED_USERNAMES.length > 0 && (
+                      <p className="text-xs text-stone-400 mt-3 mb-1.5">Suggestions</p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
                       {SUGGESTED_USERNAMES.map((name) => (
                         <button
                           key={name}
