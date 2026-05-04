@@ -241,16 +241,25 @@ export default function ProfilePage() {
 
     setSavingUsername(true);
     try {
-      const { data: existing, error: checkError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username', trimmed)
-        .maybeSingle();
-      if (checkError) {
-        // Fall through to the update; the unique-constraint catch path
-        // below surfaces the friendly "taken" message if needed.
-        console.warn('username availability check failed', checkError);
-      } else if (existing && existing.id !== userId) {
+      let existing: { id: string } | null = null;
+      try {
+        const { data, error: checkError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', trimmed)
+          .maybeSingle();
+        if (checkError) {
+          console.warn('username availability check failed', checkError);
+          setUsernameError('Could not verify username availability. Please try again.');
+          return;
+        }
+        existing = data;
+      } catch (err) {
+        console.warn('username availability check threw', err);
+        setUsernameError('Could not verify username availability. Please try again.');
+        return;
+      }
+      if (existing && existing.id !== userId) {
         setUsernameError(USERNAME_TAKEN_MESSAGE);
         return;
       }
