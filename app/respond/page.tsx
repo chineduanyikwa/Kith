@@ -3,6 +3,7 @@
 import { useState, Suspense, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis'
 import type { User } from '@supabase/supabase-js'
 
 const SUPPORT_LABELS: Record<string, string> = {
@@ -97,6 +98,7 @@ function RespondForm() {
   const [error, setError] = useState('')
   const [rateLimitError, setRateLimitError] = useState('')
   const [showCheck, setShowCheck] = useState(false)
+  const [showCrisis, setShowCrisis] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [username, setUsername] = useState<string | null>(null)
   const [autoSubmitting, setAutoSubmitting] = useState(false)
@@ -194,9 +196,14 @@ function RespondForm() {
     setShowCheck(true)
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(skipCrisisCheck = false) {
     setShowCheck(false)
     setRateLimitError('')
+
+    if (!skipCrisisCheck && containsCrisisLanguage(content)) {
+      setShowCrisis(true)
+      return
+    }
 
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     if (!currentUser) {
@@ -269,6 +276,45 @@ function RespondForm() {
       <main className="min-h-screen bg-stone-50 px-6 py-10">
         <div className="max-w-xl mx-auto pt-12 text-center">
           <p className="text-stone-500 text-sm">Submitting your response...</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (showCrisis) {
+    return (
+      <main className="min-h-screen bg-stone-50 px-4 py-8">
+        <div className="max-w-lg mx-auto pt-12">
+          <p className="text-stone-800 text-lg font-medium mb-3">Before you send this...</p>
+          <p className="text-stone-600 text-sm leading-relaxed mb-8">
+            Some of what you wrote made us want to check in with you. Are you okay?
+          </p>
+          <div className="shadow-card rounded-xl bg-card px-5 py-4 mb-8">
+            <p className="text-stone-700 text-sm font-medium mb-1">If you need to talk to someone right now</p>
+            <p className="text-stone-600 text-sm mb-2">Mentally Aware Nigeria Initiative (MANI) is available to help.</p>
+            <p className="text-stone-800 text-base font-semibold">{MANI_NUMBER}</p>
+          </div>
+          <div className="space-y-3">
+            <button
+              onClick={() => { setShowCrisis(false); handleSubmit(true) }}
+              disabled={loading}
+              className="block w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-stone-700 transition-colors disabled:opacity-40"
+            >
+              I am okay - send my {isReplyMode ? 'reply' : 'response'}
+            </button>
+            <button
+              onClick={() => { window.location.href = 'tel:' + MANI_NUMBER }}
+              className="block w-full border border-stone-300 text-stone-700 py-3 px-4 rounded-2xl text-sm font-medium text-center hover:border-stone-800 transition-colors"
+            >
+              Call MANI now
+            </button>
+            <button
+              onClick={() => setShowCrisis(false)}
+              className="block w-full text-stone-500 py-2 text-sm font-medium text-center hover:text-stone-700 transition-colors"
+            >
+              Step back
+            </button>
+          </div>
         </div>
       </main>
     )
@@ -375,7 +421,7 @@ function RespondForm() {
                   Go back
                 </button>
                 <button
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit()}
                   disabled={loading}
                   className="flex-1 bg-stone-800 text-white py-3 rounded-xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-50"
                 >
