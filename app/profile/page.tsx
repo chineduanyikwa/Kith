@@ -247,10 +247,10 @@ export default function ProfilePage() {
         .eq('username', trimmed)
         .maybeSingle();
       if (checkError) {
-        setUsernameError('Could not check username availability. Please try again.');
-        return;
-      }
-      if (existing && existing.id !== userId) {
+        // Fall through to the update; the unique-constraint catch path
+        // below surfaces the friendly "taken" message if needed.
+        console.warn('username availability check failed', checkError);
+      } else if (existing && existing.id !== userId) {
         setUsernameError(USERNAME_TAKEN_MESSAGE);
         return;
       }
@@ -345,7 +345,7 @@ export default function ProfilePage() {
                 className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
                 aria-label="Edit username"
               >
-                Edit
+                Edit username
               </button>
             </div>
           )}
