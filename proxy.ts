@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { supabaseUrl, supabaseKey } from '@/lib/supabase'
 
-export async function middleware(request: NextRequest) {
+const ADMIN_EMAIL = 'reklooce@gmail.com'
+
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
@@ -20,7 +22,13 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (user?.email !== ADMIN_EMAIL) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
 
   return response
 }
