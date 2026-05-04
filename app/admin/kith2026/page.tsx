@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
+const PAGE_SIZE = 10;
+
 type Report = {
   id: number;
   target_type: string;
@@ -16,17 +18,20 @@ type Report = {
 export default function AdminPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
 
-  async function loadReports() {
+  async function fetchPage(from: number) {
     const { data } = await supabase
       .from('reports')
       .select('*')
       .eq('status', 'open')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
 
-    if (!data) return;
+    if (!data) return [];
 
-    const enriched = await Promise.all(
+    return Promise.all(
       data.map(async (report) => {
         const table = report.target_type === 'post' ? 'posts' : 'responses';
         const { data: item } = await supabase
@@ -37,13 +42,25 @@ export default function AdminPage() {
         return { ...report, content: item?.content || '[content not found]' };
       })
     );
+  }
 
+  async function loadInitial() {
+    const enriched = await fetchPage(0);
     setReports(enriched);
+    setHasMore(enriched.length === PAGE_SIZE);
     setLoading(false);
   }
 
+  async function loadMore() {
+    setLoadingMore(true);
+    const enriched = await fetchPage(reports.length);
+    setReports((prev) => [...prev, ...enriched]);
+    if (enriched.length < PAGE_SIZE) setHasMore(false);
+    setLoadingMore(false);
+  }
+
   useEffect(() => {
-    loadReports();
+    loadInitial();
   }, []);
 
   async function dismissReport(reportId: number) {
@@ -112,6 +129,18 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {hasMore && (
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="text-sm text-stone-600 border border-stone-200 bg-white px-5 py-2 rounded-xl hover:bg-stone-50 transition-colors disabled:opacity-50"
+            >
+              {loadingMore ? 'Loading…' : 'Load more'}
+            </button>
           </div>
         )}
       </div>
