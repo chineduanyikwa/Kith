@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis';
 import type { User } from '@supabase/supabase-js';
 
 const SUPPORT_OPTIONS = [
@@ -14,13 +15,6 @@ const SUPPORT_OPTIONS = [
   { value: 'shared_experience', label: 'Shared experience', description: "Has anyone been through something like this?" },
 ];
 
-const CRISIS_KEYWORDS = [
-  'want to die', 'end my life', 'kill myself', 'killing myself',
-  'suicide', 'suicidal', 'no reason to live',
-  'end it all', 'not worth living', 'better off dead',
-];
-
-const MANI = '08091116264';
 const MIN_LENGTH = 20;
 const MAX_LENGTH = 2000;
 
@@ -80,7 +74,7 @@ function PostForm() {
     init();
   }, [router]);
 
-  const isCrisis = CRISIS_KEYWORDS.some((kw) => content.toLowerCase().includes(kw));
+  const isCrisis = containsCrisisLanguage(content);
 
   function validate() {
     if (content.length < MIN_LENGTH) {
@@ -161,7 +155,7 @@ function PostForm() {
           <div className="shadow-card rounded-xl bg-card px-5 py-4 mb-8">
             <p className="text-stone-700 text-sm font-medium mb-1">If you need to talk to someone right now</p>
             <p className="text-stone-600 text-sm mb-2">Mentally Aware Nigeria Initiative (MANI) is available to help.</p>
-            <p className="text-stone-800 text-base font-semibold">{MANI}</p>
+            <p className="text-stone-800 text-base font-semibold">{MANI_NUMBER}</p>
           </div>
           <div className="space-y-3">
             <button
@@ -171,7 +165,7 @@ function PostForm() {
               I am okay - take me to my post
             </button>
             <button
-              onClick={() => { window.location.href = 'tel:' + MANI; }}
+              onClick={() => { window.location.href = 'tel:' + MANI_NUMBER; }}
               className="block w-full border border-stone-300 text-stone-700 py-3 px-4 rounded-2xl text-sm font-medium text-center hover:border-stone-800 transition-colors"
             >
               Call MANI now
@@ -224,7 +218,7 @@ function PostForm() {
               <div className="bg-stone-100 border border-stone-200 rounded-xl px-4 py-3 mt-3">
                 
                 <p className="text-stone-600 text-sm">
-                  You do not have to be okay right now. If things feel really dark, please reach out to someone who can help. Mentally Aware Nigeria Initiative (MANI) is a free listening line: <span className="font-semibold">{MANI}</span>
+                  You do not have to be okay right now. If things feel really dark, please reach out to someone who can help. Mentally Aware Nigeria Initiative (MANI) is a free listening line: <span className="font-semibold">{MANI_NUMBER}</span>
                 </p>
               </div>
             )}
