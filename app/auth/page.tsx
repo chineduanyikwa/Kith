@@ -39,10 +39,18 @@ async function fetchAvailableSuggestions(count: number): Promise<string[]> {
         .map((n) => `${n}_${randomSuffix()}`);
     }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('username')
       .in('username', candidates);
+
+    // Fail closed: if the availability check errors (e.g. invalid anon key,
+    // RLS regression, network failure), do not show any candidates we
+    // can't verify — otherwise taken usernames leak through.
+    if (error) {
+      console.warn('username availability check failed', error);
+      return available.slice(0, count);
+    }
 
     const taken = new Set((data ?? []).map((r: { username: string }) => r.username));
     for (const c of candidates) {
@@ -143,12 +151,17 @@ function AuthForm() {
       return;
     }
 
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile, error: checkError } = await supabase
       .from('profiles')
       .select('username')
       .eq('username', trimmedUsername)
       .maybeSingle();
-    if (existingProfile) {
+    if (checkError) {
+      // If the pre-check fails we can't tell if the name is taken; fall
+      // through to signUp and rely on the unique-constraint catch path
+      // below to show a friendly error.
+      console.warn('username pre-submit check failed', checkError);
+    } else if (existingProfile) {
       setError(TAKEN_USERNAME_MESSAGE);
       setLoading(false);
       refreshSuggestions();
