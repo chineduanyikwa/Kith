@@ -7,7 +7,62 @@ import { supabase } from '@/lib/supabase';
 import { friendlyAuthError } from '@/lib/auth-errors';
 import PasswordInput from '../components/PasswordInput';
 
-const SUGGESTED_USERNAMES = ['quietriver', 'morningstone', 'stillwater', 'gentleoak', 'softrain'];
+const USERNAME_POOL = [
+  'quietriver', 'morningstone', 'stillwater', 'gentleoak', 'softrain',
+  'wildbird', 'sunfield', 'darkmoss', 'whitepine', 'graycedar',
+  'silentbrook', 'autumnlight', 'evergreenpath', 'mossymeadow', 'driftwood',
+];
+const SUGGESTION_COUNT = 5;
+const TAKEN_USERNAME_MESSAGE = 'That username is already taken. Please choose a different one.';
+
+function shuffled<T>(arr: readonly T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function randomSuffix() {
+  return Math.random().toString(36).slice(2, 6);
+}
+
+async function fetchAvailableSuggestions(count: number): Promise<string[]> {
+  const available: string[] = [];
+  let candidates = shuffled(USERNAME_POOL);
+
+  for (let round = 0; round < 5 && available.length < count; round++) {
+    if (candidates.length === 0) {
+      candidates = shuffled(USERNAME_POOL)
+        .slice(0, count * 2)
+        .map((n) => `${n}_${randomSuffix()}`);
+    }
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('username')
+      .in('username', candidates);
+
+    const taken = new Set((data ?? []).map((r: { username: string }) => r.username));
+    for (const c of candidates) {
+      if (!taken.has(c) && !available.includes(c)) {
+        available.push(c);
+        if (available.length >= count) break;
+      }
+    }
+    candidates = [];
+  }
+
+  return available.slice(0, count);
+}
+
+function isUniqueViolation(err: { code?: string; message?: string } | null | undefined) {
+  if (!err) return false;
+  if (err.code === '23505') return true;
+  const msg = (err.message ?? '').toLowerCase();
+  return msg.includes('duplicate key') || msg.includes('unique constraint');
+}
 
 function AuthForm() {
   const searchParams = useSearchParams();
@@ -21,6 +76,18 @@ function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const names = await fetchAvailableSuggestions(SUGGESTION_COUNT);
+      if (!cancelled) setSuggestions(names);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -32,7 +99,7 @@ function AuthForm() {
             .eq('id', session.user.id)
             .maybeSingle();
           if (!existing) {
-            const randomUsername = SUGGESTED_USERNAMES[Math.floor(Math.random() * SUGGESTED_USERNAMES.length)];
+            const randomUsername = `${USERNAME_POOL[Math.floor(Math.random() * USERNAME_POOL.length)]}_${randomSuffix()}`;
             await supabase.from('profiles').insert({
               id: session.user.id,
               username: randomUsername,
@@ -60,6 +127,11 @@ function AuthForm() {
     return () => subscription.unsubscribe();
   }, [next, router]);
 
+  async function refreshSuggestions() {
+    const names = await fetchAvailableSuggestions(SUGGESTION_COUNT);
+    setSuggestions(names);
+  }
+
   async function handleSignUp() {
     setError('');
     setLoading(true);
@@ -68,6 +140,18 @@ function AuthForm() {
     if (!trimmedUsername) {
       setError('Please choose a username.');
       setLoading(false);
+      return;
+    }
+
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('username', trimmedUsername)
+      .maybeSingle();
+    if (existingProfile) {
+      setError(TAKEN_USERNAME_MESSAGE);
+      setLoading(false);
+      refreshSuggestions();
       return;
     }
 
@@ -91,7 +175,12 @@ function AuthForm() {
         username: trimmedUsername,
       });
       if (profileError) {
-        setError(friendlyAuthError(profileError.message));
+        if (isUniqueViolation(profileError)) {
+          setError(TAKEN_USERNAME_MESSAGE);
+          refreshSuggestions();
+        } else {
+          setError(friendlyAuthError(profileError.message));
+        }
         setLoading(false);
         return;
       }
@@ -215,11 +304,11 @@ function AuthForm() {
                       placeholder="Choose a username"
                       className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-stone-700 text-sm focus:outline-none focus:border-stone-400"
                     />
-                    {SUGGESTED_USERNAMES.length > 0 && (
+                    {suggestions.length > 0 && (
                       <p className="text-xs text-stone-400 mt-3 mb-1.5">Suggestions</p>
                     )}
                     <div className="flex flex-wrap gap-2">
-                      {SUGGESTED_USERNAMES.map((name) => (
+                      {suggestions.map((name) => (
                         <button
                           key={name}
                           type="button"
