@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { friendlyAuthError } from '@/lib/auth-errors';
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState('');
@@ -19,7 +20,7 @@ export default function ResetPasswordPage() {
       redirectTo: window.location.origin + '/auth/update-password',
     });
     if (resetError) {
-      setError(resetError.message);
+      setError(friendlyAuthError(resetError.message));
       setLoading(false);
       return;
     }

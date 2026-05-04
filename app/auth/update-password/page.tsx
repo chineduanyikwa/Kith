@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { friendlyAuthError } from '@/lib/auth-errors';
 import PasswordInput from '../../components/PasswordInput';
 
 type Status = 'verifying' | 'ready' | 'invalid';
@@ -66,7 +67,7 @@ export default function UpdatePasswordPage() {
 
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
-      setError(updateError.message);
+      setError(friendlyAuthError(updateError.message));
       setLoading(false);
       return;
     }

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { friendlyAuthError } from '@/lib/auth-errors';
 import PasswordInput from '../components/PasswordInput';
 
 const SUGGESTED_USERNAMES = ['quietriver', 'morningstone', 'stillwater', 'gentleoak', 'softrain'];
@@ -79,7 +80,7 @@ function AuthForm() {
       },
     });
     if (signUpError) {
-      setError(signUpError.message);
+      setError(friendlyAuthError(signUpError.message));
       setLoading(false);
       return;
     }
@@ -90,7 +91,7 @@ function AuthForm() {
         username: trimmedUsername,
       });
       if (profileError) {
-        setError(profileError.message);
+        setError(friendlyAuthError(profileError.message));
         setLoading(false);
         return;
       }
@@ -105,13 +106,29 @@ function AuthForm() {
     setError('');
     setLoading(true);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInError) {
-      setError(signInError.message);
-    } else {
-      router.push(next);
+    let res: Response;
+    try {
+      res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch {
+      setError('Network error. Please try again.');
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(typeof data.error === 'string' ? data.error : 'Could not sign in.');
+      setLoading(false);
+      return;
+    }
+
+    // The server set the auth cookies on the response; do a full navigation so
+    // the browser Supabase client picks up the new session on the next page.
+    window.location.assign(next);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -129,7 +146,7 @@ function AuthForm() {
       },
     });
     if (oauthError) {
-      setError(oauthError.message);
+      setError(friendlyAuthError(oauthError.message));
     }
   }
 
