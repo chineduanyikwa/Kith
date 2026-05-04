@@ -4,6 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+const USERNAME_FORMAT = /^[a-z0-9_]{3,20}$/;
+const USERNAME_FORMAT_MESSAGE =
+  'Usernames must be 3–20 characters and use only lowercase letters, numbers, and underscores.';
+const USERNAME_TAKEN_MESSAGE = 'That username is already taken. Please choose a different one.';
+
 const SUPPORT_LABELS: Record<string, string> = {
   let_it_out: 'Just let it out',
   encouragement: 'Encouragement',
@@ -55,6 +60,11 @@ export default function ProfilePage() {
   const [responses, setResponses] = useState<ResponseItem[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [usernameSuccess, setUsernameSuccess] = useState(false);
+  const [savingUsername, setSavingUsername] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -201,6 +211,77 @@ export default function ProfilePage() {
     init();
   }, [router]);
 
+  function startEditingUsername() {
+    setUsernameDraft(username ?? '');
+    setUsernameError('');
+    setUsernameSuccess(false);
+    setEditingUsername(true);
+  }
+
+  function cancelEditingUsername() {
+    setEditingUsername(false);
+    setUsernameDraft('');
+    setUsernameError('');
+  }
+
+  async function handleSaveUsername() {
+    if (!userId) return;
+    const trimmed = usernameDraft.trim();
+    setUsernameError('');
+    setUsernameSuccess(false);
+
+    if (trimmed === username) {
+      setEditingUsername(false);
+      return;
+    }
+    if (!USERNAME_FORMAT.test(trimmed)) {
+      setUsernameError(USERNAME_FORMAT_MESSAGE);
+      return;
+    }
+
+    setSavingUsername(true);
+    try {
+      const { data: existing, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', trimmed)
+        .maybeSingle();
+      if (checkError) {
+        setUsernameError('Could not check username availability. Please try again.');
+        return;
+      }
+      if (existing && existing.id !== userId) {
+        setUsernameError(USERNAME_TAKEN_MESSAGE);
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ username: trimmed })
+        .eq('id', userId);
+      if (updateError) {
+        const msg = (updateError.message ?? '').toLowerCase();
+        if (
+          updateError.code === '23505' ||
+          msg.includes('duplicate key') ||
+          msg.includes('unique constraint')
+        ) {
+          setUsernameError(USERNAME_TAKEN_MESSAGE);
+        } else {
+          setUsernameError('Could not update username. Please try again.');
+        }
+        return;
+      }
+
+      setUsername(trimmed);
+      setEditingUsername(false);
+      setUsernameDraft('');
+      setUsernameSuccess(true);
+    } finally {
+      setSavingUsername(false);
+    }
+  }
+
   async function handleDeletePost(postId: number) {
     if (!userId) return;
     if (!window.confirm('Delete this post? This cannot be undone.')) return;
@@ -255,7 +336,58 @@ export default function ProfilePage() {
             Back to Home
           </a>
           <h1 className="text-3xl font-bold text-stone-800 mt-2">Your profile</h1>
-          {username && <p className="text-stone-500 mt-1">@{username}</p>}
+          {username && !editingUsername && (
+            <div className="mt-1 flex items-center gap-2">
+              <p className="text-stone-500">@{username}</p>
+              <button
+                type="button"
+                onClick={startEditingUsername}
+                className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                aria-label="Edit username"
+              >
+                Edit
+              </button>
+            </div>
+          )}
+          {editingUsername && (
+            <div className="mt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-stone-500">@</span>
+                <input
+                  type="text"
+                  value={usernameDraft}
+                  onChange={(e) => setUsernameDraft(e.target.value)}
+                  autoFocus
+                  disabled={savingUsername}
+                  className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-2 text-stone-700 text-sm focus:outline-none focus:border-stone-400 disabled:opacity-50"
+                />
+              </div>
+              {usernameError && (
+                <p className="text-xs text-red-500 mt-2">{usernameError}</p>
+              )}
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveUsername}
+                  disabled={savingUsername || usernameDraft.trim().length === 0}
+                  className="bg-stone-800 text-white py-1.5 px-3 rounded-xl text-xs font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
+                >
+                  {savingUsername ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEditingUsername}
+                  disabled={savingUsername}
+                  className="text-xs text-stone-400 hover:text-stone-600 transition-colors disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          {usernameSuccess && !editingUsername && (
+            <p className="text-xs text-green-600 mt-1">Username updated.</p>
+          )}
         </div>
 
         <h2 className="text-sm font-medium text-stone-500 mb-3 mt-8">Your posts</h2>
