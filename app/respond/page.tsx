@@ -157,11 +157,23 @@ function RespondForm() {
           user_id: currentUser.id,
         }
         if (saved.parentId) insert.parent_id = parseInt(saved.parentId)
-        const { error } = await supabase.from('responses').insert(insert)
+        const { data: inserted, error } = await supabase
+          .from('responses')
+          .insert(insert)
+          .select('id')
+          .single()
         if (error) {
           console.error(error)
           setAutoSubmitting(false)
         } else {
+          if (!saved.parentId && inserted?.id) {
+            fetch('/api/notifications/response', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ responseId: inserted.id }),
+              keepalive: true,
+            }).catch(() => {})
+          }
           router.push(`/browse/${saved.category}/${saved.postId}`)
         }
       }
@@ -262,11 +274,23 @@ function RespondForm() {
     }
     if (isReplyMode && parentId !== null) insert.parent_id = parentId
 
-    const { error } = await supabase.from('responses').insert(insert)
+    const { data: inserted, error } = await supabase
+      .from('responses')
+      .insert(insert)
+      .select('id')
+      .single()
     if (error) {
       console.error(error)
       setLoading(false)
     } else {
+      if (!isReplyMode && inserted?.id) {
+        fetch('/api/notifications/response', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ responseId: inserted.id }),
+          keepalive: true,
+        }).catch(() => {})
+      }
       router.push(`/browse/${category}/${postId}`)
     }
   }
