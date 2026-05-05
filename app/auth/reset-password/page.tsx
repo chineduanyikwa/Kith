@@ -20,7 +20,7 @@ export default function ResetPasswordPage() {
       redirectTo: window.location.origin + '/auth/update-password',
     });
     if (resetError) {
-      setError(friendlyAuthError(resetError.message));
+      setError(friendlyAuthError(resetError.message, 'reset'));
       setLoading(false);
       return;
     }

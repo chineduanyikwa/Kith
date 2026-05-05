@@ -25,17 +25,24 @@ function ReportForm() {
   const [selectedReason, setSelectedReason] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   async function handleSubmit() {
     if (!selectedReason || !target_id) return;
+    setError('');
     setSubmitting(true);
-    await supabase.from('reports').insert({
+    const { error: dbError } = await supabase.from('reports').insert({
       target_type,
       target_id: parseInt(target_id),
       reason: selectedReason,
       status: 'open',
     });
     setSubmitting(false);
+    if (dbError) {
+      console.error(dbError);
+      setError('Could not send your report right now. Please try again in a moment.');
+      return;
+    }
     setSubmitted(true);
   }
 
@@ -100,6 +107,10 @@ function ReportForm() {
         >
           {submitting ? 'Sending...' : 'Submit report'}
         </button>
+
+        {error && (
+          <p className="text-sm text-red-500 text-center mt-3">{error}</p>
+        )}
       </div>
     </main>
   );

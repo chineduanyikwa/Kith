@@ -253,13 +253,13 @@ export default function ProfilePage() {
           .maybeSingle();
         if (checkError) {
           console.warn('username availability check failed', checkError);
-          setUsernameError('Could not verify username availability. Please try again.');
+          setUsernameError('Could not check that username right now. Please try again in a moment.');
           return;
         }
         existing = data;
       } catch (err) {
         console.warn('username availability check threw', err);
-        setUsernameError('Could not verify username availability. Please try again.');
+        setUsernameError('Could not check that username right now. Please try again in a moment.');
         return;
       }
       if (existing && existing.id !== userId) {
@@ -280,7 +280,7 @@ export default function ProfilePage() {
         ) {
           setUsernameError(USERNAME_TAKEN_MESSAGE);
         } else {
-          setUsernameError('Could not update username. Please try again.');
+          setUsernameError('Could not update your username right now. Please try again in a moment.');
         }
         return;
       }
@@ -305,7 +305,8 @@ export default function ProfilePage() {
       .eq('user_id', userId);
 
     if (dbError) {
-      setError(dbError.message);
+      console.error(dbError);
+      setError('Could not delete your post right now. Please try again in a moment.');
       return;
     }
     setError('');
@@ -319,14 +320,14 @@ export default function ProfilePage() {
       const res = await fetch('/api/account/delete', { method: 'POST' });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        setDeleteError(body?.error ?? 'Could not delete account. Please try again.');
+        setDeleteError(body?.error ?? 'Could not delete your account right now. Please try again in a moment.');
         setDeletingAccount(false);
         return;
       }
       await supabase.auth.signOut();
       router.push('/');
     } catch {
-      setDeleteError('Could not delete account. Please try again.');
+      setDeleteError('Could not delete your account right now. Please try again in a moment.');
       setDeletingAccount(false);
     }
   }
@@ -342,7 +343,8 @@ export default function ProfilePage() {
       .eq('user_id', userId);
 
     if (dbError) {
-      setError(dbError.message);
+      console.error(dbError);
+      setError('Could not delete your response right now. Please try again in a moment.');
       return;
     }
     setError('');

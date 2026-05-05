@@ -27,15 +27,16 @@ export async function POST(request: NextRequest) {
 
   const userId = user.id;
 
+  const RETRYABLE_DELETE_ERROR =
+    'Could not delete your account right now. Please try again in a moment.';
+
   const { error: respError } = await supabase
     .from('responses')
     .delete()
     .eq('user_id', userId);
   if (respError) {
-    return NextResponse.json(
-      { error: 'Could not delete responses. Please try again.' },
-      { status: 500 },
-    );
+    console.error('account delete: responses', respError);
+    return NextResponse.json({ error: RETRYABLE_DELETE_ERROR }, { status: 500 });
   }
 
   const { error: postsError } = await supabase
@@ -43,10 +44,8 @@ export async function POST(request: NextRequest) {
     .delete()
     .eq('user_id', userId);
   if (postsError) {
-    return NextResponse.json(
-      { error: 'Could not delete posts. Please try again.' },
-      { status: 500 },
-    );
+    console.error('account delete: posts', postsError);
+    return NextResponse.json({ error: RETRYABLE_DELETE_ERROR }, { status: 500 });
   }
 
   const { error: profileError } = await supabase
@@ -54,10 +53,8 @@ export async function POST(request: NextRequest) {
     .delete()
     .eq('id', userId);
   if (profileError) {
-    return NextResponse.json(
-      { error: 'Could not delete profile. Please try again.' },
-      { status: 500 },
-    );
+    console.error('account delete: profile', profileError);
+    return NextResponse.json({ error: RETRYABLE_DELETE_ERROR }, { status: 500 });
   }
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

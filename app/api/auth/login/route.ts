@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   if (error) {
     recordLoginFailure(ip);
     return NextResponse.json(
-      { error: friendlyAuthError(error.message) },
+      { error: friendlyAuthError(error.message, 'login') },
       { status: 401 },
     );
   }

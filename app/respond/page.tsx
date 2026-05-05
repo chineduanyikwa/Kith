@@ -282,6 +282,8 @@ function RespondForm() {
     if (error) {
       console.error(error)
       setLoading(false)
+      setError(`Could not send your ${isReplyMode ? 'reply' : 'response'} right now. Please try again in a moment.`)
+      return
     } else {
       if (!isReplyMode && inserted?.id) {
         fetch('/api/notifications/response', {
