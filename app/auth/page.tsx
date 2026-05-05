@@ -267,6 +267,9 @@ function AuthForm() {
               <p className="text-sm text-stone-500 leading-relaxed">
                 We sent a confirmation link to <span className="text-stone-700">{pendingConfirmationEmail}</span>. Click it to activate your account.
               </p>
+              <p className="text-xs text-stone-400 mt-3">
+                Don't see the email? Check your spam folder.
+              </p>
             </div>
           ) : (
             <>
