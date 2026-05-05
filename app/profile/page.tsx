@@ -65,6 +65,9 @@ export default function ProfilePage() {
   const [usernameError, setUsernameError] = useState('');
   const [usernameSuccess, setUsernameSuccess] = useState(false);
   const [savingUsername, setSavingUsername] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     async function init() {
@@ -309,6 +312,25 @@ export default function ProfilePage() {
     setPosts((prev) => prev.filter((p) => p.id !== postId));
   }
 
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    setDeleteError('');
+    try {
+      const res = await fetch('/api/account/delete', { method: 'POST' });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        setDeleteError(body?.error ?? 'Could not delete account. Please try again.');
+        setDeletingAccount(false);
+        return;
+      }
+      await supabase.auth.signOut();
+      router.push('/');
+    } catch {
+      setDeleteError('Could not delete account. Please try again.');
+      setDeletingAccount(false);
+    }
+  }
+
   async function handleDeleteResponse(responseId: number) {
     if (!userId) return;
     if (!window.confirm('Delete this response? This cannot be undone.')) return;
@@ -507,6 +529,52 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="border-t border-stone-200 mt-12 pt-8">
+          {!confirmingDelete ? (
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteError('');
+                setConfirmingDelete(true);
+              }}
+              className="text-sm text-red-600/80 hover:text-red-700 transition-colors"
+            >
+              Delete account
+            </button>
+          ) : (
+            <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
+              <p className="text-sm text-stone-700 leading-relaxed">
+                This will permanently delete your account and all your posts and responses.
+                This cannot be undone.
+              </p>
+              {deleteError && (
+                <p className="text-xs text-red-500 mt-3">{deleteError}</p>
+              )}
+              <div className="flex items-center gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount}
+                  className="bg-red-600 text-white py-1.5 px-3 rounded-xl text-xs font-medium hover:bg-red-700 transition-colors disabled:opacity-40"
+                >
+                  {deletingAccount ? 'Deleting...' : 'Yes, delete my account'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmingDelete(false);
+                    setDeleteError('');
+                  }}
+                  disabled={deletingAccount}
+                  className="text-xs text-stone-400 hover:text-stone-600 transition-colors disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </main>
