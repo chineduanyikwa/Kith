@@ -71,6 +71,14 @@ export default function PostPage({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [allResponses, setAllResponses] = useState<ResponseRow[]>([]);
   const [resolving, setResolving] = useState(false);
+  const [helpedState, setHelpedState] = useState<Record<number, 'confirm' | 'gone'>>({});
+
+  function handleHelped(responseId: number) {
+    setHelpedState((s) => ({ ...s, [responseId]: 'confirm' }));
+    setTimeout(() => {
+      setHelpedState((s) => ({ ...s, [responseId]: 'gone' }));
+    }, 8000);
+  }
 
   async function handleMarkResolved() {
     if (!post || resolving) return;
@@ -204,31 +212,54 @@ export default function PostPage({
     );
   }
 
-  const renderNode = (node: ResponseNode, depth: number) => (
-    <div key={node.id} className={depth === 0 ? '' : 'mt-3 pl-4 border-l-2 border-stone-200'}>
-      <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
-        <p className="text-stone-700 text-base leading-relaxed">{node.content}</p>
-        <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-stone-400">{node.anonymous ? 'Anonymous' : (node.profiles?.username ?? 'A member of Kith')}</p>
-            <span className="text-stone-300 text-xs">·</span>
-            <span className="text-xs text-stone-400">{new Date(node.created_at).toLocaleDateString()}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            {node.canReply && (
-              <a href={node.replyHref} className="text-xs text-stone-500 hover:text-stone-700 transition-colors">
-                Reply
+  const renderNode = (node: ResponseNode, depth: number) => {
+    const isOwnTopLevel =
+      depth === 0 &&
+      currentUserId != null &&
+      node.user_id === currentUserId &&
+      post != null &&
+      post.user_id !== currentUserId;
+    const helped = helpedState[node.id];
+    return (
+      <div key={node.id} className={depth === 0 ? '' : 'mt-3 pl-4 border-l-2 border-stone-200'}>
+        <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
+          <p className="text-stone-700 text-base leading-relaxed">{node.content}</p>
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-stone-400">{node.anonymous ? 'Anonymous' : (node.profiles?.username ?? 'A member of Kith')}</p>
+              <span className="text-stone-300 text-xs">·</span>
+              <span className="text-xs text-stone-400">{new Date(node.created_at).toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              {node.canReply && (
+                <a href={node.replyHref} className="text-xs text-stone-500 hover:text-stone-700 transition-colors">
+                  Reply
+                </a>
+              )}
+              <a href={node.reportHref} className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                Report
               </a>
-            )}
-            <a href={node.reportHref} className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
-              Report
-            </a>
+            </div>
           </div>
         </div>
+        {isOwnTopLevel && helped !== 'gone' && (
+          <div className="mt-2 pl-5">
+            {helped === 'confirm' ? (
+              <p className="text-xs text-stone-400 italic">Glad you showed up.</p>
+            ) : (
+              <button
+                onClick={() => handleHelped(node.id)}
+                className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+              >
+                This helped me show up
+              </button>
+            )}
+          </div>
+        )}
+        {node.children.map((child) => renderNode(child, depth + 1))}
       </div>
-      {node.children.map((child) => renderNode(child, depth + 1))}
-    </div>
-  );
+    );
+  };
 
   return (
     <main className="min-h-screen bg-stone-50 px-4 py-8">
