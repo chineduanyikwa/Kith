@@ -11,6 +11,16 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Kith",
   description: "Some things are too heavy for one person.",
+  openGraph: {
+    title: "Kith",
+    description: "Some things are too heavy for one person.",
+    type: "website",
+    url: "https://kith.support",
+    images: [{ url: "/og-image.png" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({
