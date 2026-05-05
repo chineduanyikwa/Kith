@@ -55,17 +55,31 @@ function ReportForm() {
   }
 
   if (submitted) {
+    const hasPost = Boolean(category && post_id);
     return (
       <main className="min-h-screen bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto text-center pt-20">
-          <p className="text-stone-700 text-lg mb-2">Thank you for flagging this.</p>
-          <p className="text-stone-500 text-sm mb-8">We'll review it and take action if needed.</p>
+          <div className="w-12 h-12 rounded-full bg-stone-200 text-stone-700 flex items-center justify-center mx-auto mb-6 text-xl">
+            ✓
+          </div>
+          <h1 className="text-stone-800 text-lg font-medium mb-3">Report received</h1>
+          <p className="text-stone-600 text-sm mb-10 leading-relaxed">
+            Thanks for letting us know. We'll review this and take action if it violates our community guidelines.
+          </p>
           <button
             onClick={handleBack}
-            className="text-stone-400 text-sm underline hover:text-stone-600"
+            className="block w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors mb-4"
           >
-            Go back
+            {hasPost ? 'Back to post' : 'Back to browsing'}
           </button>
+          {hasPost && (
+            <button
+              onClick={() => router.push('/browse')}
+              className="text-stone-500 text-sm underline hover:text-stone-700"
+            >
+              Back to browsing
+            </button>
+          )}
         </div>
       </main>
     );
