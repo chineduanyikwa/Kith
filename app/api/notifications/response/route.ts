@@ -96,10 +96,10 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'hello@kith.support',
+      from: 'Kith <hello@kith.support>',
       to: authorEmail,
       subject: 'Someone showed up for you on Kith',
-      html: `<p>Someone responded to your post in <strong>${categoryDisplay}</strong>.</p><p><a href="${postUrl}">Read their response on Kith</a>.</p>`,
+      html: `<p>Someone showed up for you in ${categoryDisplay}. That matters. <a href="${postUrl}">Read their response</a> and keep the thread going.</p>`,
     }),
   });
 
