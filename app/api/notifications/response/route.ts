@@ -89,6 +89,8 @@ export async function POST(request: NextRequest) {
     .replace(/\b\w/g, (l: string) => l.toUpperCase());
   const postUrl = `${request.nextUrl.origin}/browse/${post.category}/${post.id}`;
 
+  const html = `<div style="background-color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#000000;padding:24px;"><h1 style="font-size:24px;font-weight:700;margin:0 0 16px;">Someone showed up for you</h1><p style="font-size:16px;line-height:1.5;margin:0 0 24px;">Someone responded to your post in ${categoryDisplay}.</p><a href="${postUrl}" style="display:inline-block;background-color:#000000;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:500;">Read their response</a><p style="font-size:13px;color:#888888;margin:32px 0 0;line-height:1.5;">If you no longer want these emails, you can manage your notification settings on Kith.</p></div>`;
+
   const emailRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -96,10 +98,10 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'hello@kith.support',
+      from: 'Kith <hello@kith.support>',
       to: authorEmail,
       subject: 'Someone showed up for you on Kith',
-      html: `<div style="background-color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#000000;padding:24px;"><h1 style="font-size:24px;font-weight:700;margin:0 0 16px;">Someone showed up for you</h1><p style="font-size:16px;line-height:1.5;margin:0 0 24px;">Someone responded to your post in ${categoryDisplay}.</p><a href="${postUrl}" style="display:inline-block;background-color:#000000;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:500;">Read their response</a><p style="font-size:13px;color:#888888;margin:32px 0 0;line-height:1.5;">If you no longer want these emails, you can manage your notification settings on Kith.</p></div>`,
+      html,
     }),
   });
 
