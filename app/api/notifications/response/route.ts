@@ -89,6 +89,38 @@ export async function POST(request: NextRequest) {
     .replace(/\b\w/g, (l: string) => l.toUpperCase());
   const postUrl = `${request.nextUrl.origin}/browse/${post.category}/${post.id}`;
 
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1f2937;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f5;">
+      <tr>
+        <td align="center" style="padding:48px 24px;">
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:8px;text-align:center;">
+            <tr>
+              <td style="padding:48px 40px 32px 40px;font-size:22px;font-weight:700;color:#000000;">Kith</td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 32px 40px;font-size:16px;line-height:1.5;color:#374151;">
+                Someone showed up for you in ${categoryDisplay}. That matters.
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 48px 40px;">
+                <a href="${postUrl}" style="display:inline-block;background:#000000;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:12px 24px;border-radius:6px;">Read their response</a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 40px 40px 40px;font-size:12px;line-height:1.5;color:#9ca3af;">
+                You're receiving this because you have a post on Kith.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
   const emailRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -96,10 +128,10 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'hello@kith.support',
+      from: 'Kith <hello@kith.support>',
       to: authorEmail,
       subject: 'Someone showed up for you on Kith',
-      html: `<p>Someone responded to your post in <strong>${categoryDisplay}</strong>.</p><p><a href="${postUrl}">Read their response on Kith</a>.</p>`,
+      html,
     }),
   });
 
