@@ -138,7 +138,7 @@ function PostForm() {
     setLoading(false);
     if (dbError) {
       console.error(dbError);
-      setError(dbError.message);
+      setError('Could not share your post right now. Please try again in a moment.');
     } else if (isCrisis) {
       setShowCrisisFollowUp(true);
     } else {

@@ -177,7 +177,7 @@ function AuthForm() {
       },
     });
     if (signUpError) {
-      setError(friendlyAuthError(signUpError.message));
+      setError(friendlyAuthError(signUpError.message, 'signup'));
       setLoading(false);
       return;
     }
@@ -192,7 +192,7 @@ function AuthForm() {
           setError(TAKEN_USERNAME_MESSAGE);
           refreshSuggestions();
         } else {
-          setError(friendlyAuthError(profileError.message));
+          setError(friendlyAuthError(profileError.message, 'signup'));
         }
         setLoading(false);
         return;
@@ -216,14 +216,14 @@ function AuthForm() {
         body: JSON.stringify({ email, password }),
       });
     } catch {
-      setError('Network error. Please try again.');
+      setError('Could not reach the server. Please check your connection and try again.');
       setLoading(false);
       return;
     }
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(typeof data.error === 'string' ? data.error : 'Could not sign in.');
+      setError(typeof data.error === 'string' ? data.error : 'Could not sign in right now. Please try again in a moment.');
       setLoading(false);
       return;
     }
@@ -248,7 +248,7 @@ function AuthForm() {
       },
     });
     if (oauthError) {
-      setError(friendlyAuthError(oauthError.message));
+      setError(friendlyAuthError(oauthError.message, 'oauth'));
     }
   }
 
