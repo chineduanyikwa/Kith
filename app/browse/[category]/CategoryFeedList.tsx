@@ -59,7 +59,7 @@ export default function CategoryFeedList({
   if (posts.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-stone-400 text-sm">No posts yet in this space.</p>
+        <p className="text-stone-400 text-sm">It&apos;s quiet in this space.</p>
         <p className="text-stone-400 text-sm mt-1">Be the first to speak.</p>
       </div>
     )
