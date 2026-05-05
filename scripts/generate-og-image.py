@@ -17,7 +17,11 @@ MUTED = (0x78, 0x71, 0x6C)
 WORDMARK = "Kith"
 TAGLINE = "Some things are too heavy for one person."
 
-FONT_CANDIDATES = [
+HERE = os.path.dirname(os.path.abspath(__file__))
+JAKARTA_BOLD = os.path.join(HERE, "fonts", "PlusJakartaSans-Bold.ttf")
+JAKARTA_REGULAR = os.path.join(HERE, "fonts", "PlusJakartaSans-Regular.ttf")
+
+FALLBACK_CANDIDATES = [
     "/System/Library/Fonts/HelveticaNeue.ttc",
     "/System/Library/Fonts/Helvetica.ttc",
     "/System/Library/Fonts/SFNS.ttf",
@@ -28,7 +32,13 @@ FONT_CANDIDATES = [
 
 
 def load_font(size, bold=False):
-    for path in FONT_CANDIDATES:
+    primary = JAKARTA_BOLD if bold else JAKARTA_REGULAR
+    if os.path.exists(primary):
+        try:
+            return ImageFont.truetype(primary, size)
+        except OSError:
+            pass
+    for path in FALLBACK_CANDIDATES:
         if not os.path.exists(path):
             continue
         try:
@@ -76,7 +86,6 @@ def render(path):
 
 
 if __name__ == "__main__":
-    here = os.path.dirname(os.path.abspath(__file__))
-    out = os.path.normpath(os.path.join(here, "..", "public", "og-image.png"))
+    out = os.path.normpath(os.path.join(HERE, "..", "public", "og-image.png"))
     render(out)
     print(f"wrote {out}")
