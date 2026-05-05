@@ -21,6 +21,11 @@ export default function Home() {
         <p className="text-xs text-stone-400 pt-4">
           Kith is a peer support community, not a substitute for professional help.
         </p>
+        <div className="flex items-center justify-center gap-4 text-xs text-stone-400 pt-2">
+          <a href="/privacy" className="hover:text-stone-600 transition-colors">Privacy</a>
+          <span aria-hidden="true">·</span>
+          <a href="/terms" className="hover:text-stone-600 transition-colors">Terms</a>
+        </div>
       </div>
     </main>
   );
