@@ -160,13 +160,13 @@ function PostForm() {
     return (
       <main className="min-h-screen bg-stone-50 px-4 py-8">
         <div className="max-w-lg mx-auto pt-12">
-          <p className="text-stone-800 text-lg font-medium mb-3">Your post has been shared.</p>
+          <p className="text-stone-800 text-lg font-medium mb-3">Your post is up. Thank you for sharing it.</p>
           <p className="text-stone-600 text-sm leading-relaxed mb-8">
-            Some of what you wrote made us want to check in with you. Are you okay?
+            Some of what you wrote stayed with us. Are you doing okay right now?
           </p>
           <div className="shadow-card rounded-xl bg-card px-5 py-4 mb-8">
-            <p className="text-stone-700 text-sm font-medium mb-1">If you need to talk to someone right now</p>
-            <p className="text-stone-600 text-sm mb-2">Mentally Aware Nigeria Initiative (MANI) is available to help.</p>
+            <p className="text-stone-700 text-sm font-medium mb-1">If you want to talk to someone right now</p>
+            <p className="text-stone-600 text-sm mb-2">Mentally Aware Nigeria Initiative (MANI) is a free listening line. No judgment, just someone who'll hear you out.</p>
             <p className="text-stone-800 text-base font-semibold">{MANI_NUMBER}</p>
           </div>
           <div className="space-y-3">
@@ -174,7 +174,7 @@ function PostForm() {
               onClick={() => router.push('/browse/' + category)}
               className="block w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-stone-700 transition-colors"
             >
-              I am okay - take me to my post
+              Take me to my post
             </button>
             <button
               onClick={() => { window.location.href = 'tel:' + MANI_NUMBER; }}
