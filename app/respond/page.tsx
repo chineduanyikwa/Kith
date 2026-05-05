@@ -425,13 +425,13 @@ function RespondForm() {
                   disabled={loading}
                   className="flex-1 bg-stone-800 text-white py-3 rounded-xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-50"
                 >
-                  {loading ? 'Sending...' : 'Yes, send it'}
+                  {loading ? 'Yes, send it...' : 'Yes, send it'}
                 </button>
               </div>
             </div>
           ) : (
-            <button onClick={handleAddVoice} className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors mt-4">
-              {isReplyMode ? 'Send reply' : 'Add your voice'}
+            <button onClick={handleAddVoice} disabled={loading} className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors disabled:opacity-40 mt-4">
+              {isReplyMode ? (loading ? 'Send reply...' : 'Send reply') : 'Add your voice'}
             </button>
           )}
 
