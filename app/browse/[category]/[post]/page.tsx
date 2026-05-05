@@ -19,6 +19,7 @@ type Post = {
   anonymous: boolean;
   support_type: string | null;
   created_at: string;
+  resolved: boolean;
   user_id?: string | null;
   profiles?: { username: string } | null;
 };
@@ -69,6 +70,22 @@ export default function PostPage({
   const [respondHref, setRespondHref] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [allResponses, setAllResponses] = useState<ResponseRow[]>([]);
+  const [resolving, setResolving] = useState(false);
+
+  async function handleMarkResolved() {
+    if (!post || resolving) return;
+    setResolving(true);
+    const { error } = await supabase
+      .from('posts')
+      .update({ resolved: true })
+      .eq('id', post.id);
+    setResolving(false);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    setPost({ ...post, resolved: true });
+  }
 
   useEffect(() => {
     async function load() {
@@ -232,6 +249,22 @@ export default function PostPage({
             <span className="text-stone-300 text-xs">·</span>
             <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
           </div>
+          {currentUserId && currentUserId === post.user_id && (
+            post.resolved ? (
+              <div className="mt-4 inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1.5 rounded-full text-xs font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
+                Resolved
+              </div>
+            ) : (
+              <button
+                onClick={handleMarkResolved}
+                disabled={resolving}
+                className="mt-4 text-xs text-stone-600 border border-stone-300 px-3 py-1.5 rounded-full hover:border-stone-800 hover:text-stone-800 transition-colors disabled:opacity-40"
+              >
+                {resolving ? 'Marking...' : 'Mark as resolved'}
+              </button>
+            )
+          )}
         </div>
 
         <div className="mt-4">
