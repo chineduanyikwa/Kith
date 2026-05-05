@@ -116,6 +116,18 @@ function PostForm() {
       return;
     }
 
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: recentPosts } = await supabase
+      .from('posts')
+      .select('content')
+      .eq('user_id', currentUser.id)
+      .gt('created_at', fiveMinutesAgo);
+    if (recentPosts?.some((p) => p.content === content)) {
+      setLoading(false);
+      setError("You've already posted this. Give it a moment before posting again.");
+      return;
+    }
+
     const { error: dbError } = await supabase.from('posts').insert({
       content,
       category,
