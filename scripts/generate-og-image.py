@@ -1,120 +1,82 @@
 #!/usr/bin/env python3
-"""Generate public/og-image.png: stone background with 'Kith' centered.
+"""Generate public/og-image.png: stone background with 'Kith' wordmark and tagline.
 
-Uses only the Python standard library so it runs anywhere without setup.
-Renders the wordmark from a hand-tuned 5x7 bitmap, scaled up.
+Uses Pillow to render clean anti-aliased sans-serif text matching the site's aesthetic.
 """
 
 import os
-import struct
-import zlib
+import sys
+
+from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1200, 630
-BG = (245, 241, 234)  # stone / off-white
-FG = (42, 42, 42)     # dark
+BG = (0xEF, 0xED, 0xE8)
+FG = (0x1C, 0x19, 0x17)
+MUTED = (0x78, 0x71, 0x6C)
 
-FONT = {
-    "K": [
-        "X...X",
-        "X..X.",
-        "X.X..",
-        "XX...",
-        "X.X..",
-        "X..X.",
-        "X...X",
-    ],
-    "i": [
-        ".X.",
-        "...",
-        ".X.",
-        ".X.",
-        ".X.",
-        ".X.",
-        ".X.",
-    ],
-    "t": [
-        ".X..",
-        ".X..",
-        "XXX.",
-        ".X..",
-        ".X..",
-        ".X..",
-        "..X.",
-    ],
-    "h": [
-        "X....",
-        "X....",
-        "X.XX.",
-        "XX..X",
-        "X...X",
-        "X...X",
-        "X...X",
-    ],
-}
+WORDMARK = "Kith"
+TAGLINE = "Some things are too heavy for one person."
 
-TEXT = "Kith"
-SCALE = 26
-GAP_CELLS = 1
+FONT_CANDIDATES = [
+    "/System/Library/Fonts/HelveticaNeue.ttc",
+    "/System/Library/Fonts/Helvetica.ttc",
+    "/System/Library/Fonts/SFNS.ttf",
+    "/Library/Fonts/Arial Unicode.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+]
 
 
-def render():
-    widths = [len(FONT[c][0]) for c in TEXT]
-    total_cells_w = sum(widths) + GAP_CELLS * (len(TEXT) - 1)
-    total_w = total_cells_w * SCALE
-    total_h = 7 * SCALE
-    x0 = (W - total_w) // 2
-    y0 = (H - total_h) // 2
-
-    # Precompute letter horizontal ranges in pixel space.
-    ranges = []
-    cx = x0
-    for ci, ch in enumerate(TEXT):
-        w = widths[ci]
-        ranges.append((cx, cx + w * SCALE, ch, w))
-        cx += w * SCALE + GAP_CELLS * SCALE
-
-    raw = bytearray()
-    for y in range(H):
-        raw.append(0)  # filter: None
-        for x in range(W):
-            on = False
-            if y0 <= y < y0 + total_h:
-                for (lx0, lx1, ch, lw) in ranges:
-                    if lx0 <= x < lx1:
-                        col = (x - lx0) // SCALE
-                        row = (y - y0) // SCALE
-                        if FONT[ch][row][col] == "X":
-                            on = True
-                        break
-            r, g, b = FG if on else BG
-            raw.append(r); raw.append(g); raw.append(b)
-    return bytes(raw)
+def load_font(size, bold=False):
+    for path in FONT_CANDIDATES:
+        if not os.path.exists(path):
+            continue
+        try:
+            if path.endswith(".ttc"):
+                # HelveticaNeue.ttc: 0 Regular, 1 Bold, 10 Medium
+                index = 10 if bold else 0
+                return ImageFont.truetype(path, size, index=index)
+            return ImageFont.truetype(path, size)
+        except OSError:
+            continue
+    print("warning: no truetype font found, falling back to default", file=sys.stderr)
+    return ImageFont.load_default()
 
 
-def png_chunk(typ, data):
-    return (
-        struct.pack(">I", len(data))
-        + typ
-        + data
-        + struct.pack(">I", zlib.crc32(typ + data) & 0xFFFFFFFF)
-    )
+def draw_centered(draw, text, y, font, fill):
+    bbox = draw.textbbox((0, 0), text, font=font)
+    w = bbox[2] - bbox[0]
+    x = (W - w) // 2 - bbox[0]
+    draw.text((x, y), text, font=font, fill=fill)
+    return bbox[3] - bbox[1]
 
 
-def write_png(path, raw):
-    ihdr = struct.pack(">IIBBBBB", W, H, 8, 2, 0, 0, 0)  # 8-bit RGB
-    idat = zlib.compress(raw, 9)
-    blob = (
-        b"\x89PNG\r\n\x1a\n"
-        + png_chunk(b"IHDR", ihdr)
-        + png_chunk(b"IDAT", idat)
-        + png_chunk(b"IEND", b"")
-    )
-    with open(path, "wb") as f:
-        f.write(blob)
+def render(path):
+    img = Image.new("RGB", (W, H), BG)
+    draw = ImageDraw.Draw(img)
+
+    wordmark_font = load_font(240, bold=True)
+    tagline_font = load_font(38, bold=False)
+
+    wm_bbox = draw.textbbox((0, 0), WORDMARK, font=wordmark_font)
+    tg_bbox = draw.textbbox((0, 0), TAGLINE, font=tagline_font)
+
+    wm_h = wm_bbox[3] - wm_bbox[1]
+    tg_h = tg_bbox[3] - tg_bbox[1]
+    spacing = 48
+    block_h = wm_h + spacing + tg_h
+
+    y = (H - block_h) // 2 - wm_bbox[1]
+    draw_centered(draw, WORDMARK, y, wordmark_font, FG)
+
+    y = (H - block_h) // 2 + wm_h + spacing - tg_bbox[1]
+    draw_centered(draw, TAGLINE, y, tagline_font, MUTED)
+
+    img.save(path, "PNG", optimize=True)
 
 
 if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))
-    out = os.path.join(here, "..", "public", "og-image.png")
-    write_png(os.path.normpath(out), render())
+    out = os.path.normpath(os.path.join(here, "..", "public", "og-image.png"))
+    render(out)
     print(f"wrote {out}")
