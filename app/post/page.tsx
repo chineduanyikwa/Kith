@@ -270,7 +270,7 @@ function PostForm() {
             disabled={loading}
             className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors disabled:opacity-40"
           >
-            {loading ? 'Posting...' : 'Let it out'}
+            {loading ? 'Let it out...' : 'Let it out'}
           </button>
 
           {rateLimitError && (
