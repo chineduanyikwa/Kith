@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis';
 
 const SUPPORT_LABELS: Record<string, string> = {
   let_it_out: 'Just let it out',
@@ -42,6 +43,32 @@ type ResponseNode = ResponseRow & {
   children: ResponseNode[];
 };
 
+const SNIPPET_PRIVATE = 60;
+const SNIPPET_PUBLIC = 100;
+
+function previewSnippet(content: string, full: boolean) {
+  const flat = content.replace(/\s+/g, ' ').trim();
+  const max = full ? SNIPPET_PUBLIC : SNIPPET_PRIVATE;
+  return flat.length > max ? flat.slice(0, max).trimEnd() + '…' : flat;
+}
+
+function formatTimestamp(iso: string) {
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  if (diffMs < minute) return 'just now';
+  if (diffMs < hour) return `${Math.floor(diffMs / minute)}m`;
+  if (diffMs < day) return `${Math.floor(diffMs / hour)}h`;
+  if (diffMs < 7 * day) return `${Math.floor(diffMs / day)}d`;
+  return d.toLocaleDateString();
+}
+
+function flattenThread(node: ResponseNode): ResponseNode[] {
+  return [node, ...node.children.flatMap(flattenThread)];
+}
+
 export default function PostPage({
   params,
 }: {
@@ -72,6 +99,13 @@ export default function PostPage({
   const [allResponses, setAllResponses] = useState<ResponseRow[]>([]);
   const [resolving, setResolving] = useState(false);
   const [helpedState, setHelpedState] = useState<Record<number, 'confirm' | 'gone'>>({});
+
+  const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [replying, setReplying] = useState(false);
+  const [replyError, setReplyError] = useState('');
+  const [showReplyCrisis, setShowReplyCrisis] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   function handleHelped(responseId: number) {
     setHelpedState((s) => ({ ...s, [responseId]: 'confirm' }));
@@ -183,7 +217,7 @@ export default function PostPage({
     return () => {
       authSub.subscription.unsubscribe();
     };
-  }, [postId, category]);
+  }, [postId, category, refreshKey]);
 
   const hasOwnTopLevel =
     currentUserId != null &&
@@ -212,114 +246,354 @@ export default function PostPage({
     );
   }
 
-  const renderNode = (node: ResponseNode, depth: number) => {
-    const isOwnTopLevel =
-      depth === 0 &&
-      currentUserId != null &&
-      node.user_id === currentUserId &&
-      post != null &&
-      post.user_id !== currentUserId;
-    const helped = helpedState[node.id];
-    return (
-      <div key={node.id} className={depth === 0 ? '' : 'mt-3 pl-4 border-l-2 border-stone-200'}>
-        <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
-          <p className="text-stone-700 text-base leading-relaxed">{node.content}</p>
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-stone-400">{node.anonymous ? 'Anonymous' : (node.profiles?.username ?? 'A member of Kith')}</p>
-              <span className="text-stone-300 text-xs">·</span>
-              <span className="text-xs text-stone-400">{new Date(node.created_at).toLocaleDateString()}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              {node.canReply && (
-                <a href={node.replyHref} className="text-xs text-stone-500 hover:text-stone-700 transition-colors">
-                  Reply
-                </a>
-              )}
-              <a href={node.reportHref} className="text-xs text-stone-400 hover:text-stone-600 transition-colors">
-                Report
-              </a>
-            </div>
-          </div>
-        </div>
-        {isOwnTopLevel && helped !== 'gone' && (
-          <div className="mt-2 pl-5">
-            {helped === 'confirm' ? (
-              <p className="text-xs text-stone-400 italic">Glad you showed up.</p>
-            ) : (
-              <button
-                onClick={() => handleHelped(node.id)}
-                className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
-              >
-                This helped me show up
-              </button>
-            )}
-          </div>
-        )}
-        {node.children.map((child) => renderNode(child, depth + 1))}
-      </div>
-    );
-  };
+  const isTalker =
+    currentUserId != null && post.user_id != null && currentUserId === post.user_id;
+
+  const selectedThread =
+    selectedThreadId != null ? tree.find((n) => n.id === selectedThreadId) ?? null : null;
+
+  async function handleReply(skipCrisisCheck = false) {
+    setReplyError('');
+    if (!selectedThread) return;
+    const messages = flattenThread(selectedThread);
+    const last = messages[messages.length - 1];
+    if (!last || !last.canReply) return;
+
+    const trimmed = replyContent.trim();
+    if (!trimmed) {
+      setReplyError('Please add a few words.');
+      return;
+    }
+    if (trimmed.length > 1500) {
+      setReplyError('Please keep your reply under 1500 characters.');
+      return;
+    }
+    if (!skipCrisisCheck && containsCrisisLanguage(trimmed)) {
+      setShowReplyCrisis(true);
+      return;
+    }
+
+    setReplying(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setReplying(false);
+      setReplyError('Please sign in to reply.');
+      return;
+    }
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentCount } = await supabase
+      .from('responses')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gt('created_at', oneHourAgo);
+    if ((recentCount ?? 0) >= 10) {
+      setReplying(false);
+      setReplyError("You've been showing up a lot today. Rest a little and come back.");
+      return;
+    }
+
+    const { error } = await supabase.from('responses').insert({
+      content: trimmed,
+      post_id: parseInt(postId),
+      anonymous: false,
+      user_id: user.id,
+      parent_id: last.id,
+    });
+
+    if (error) {
+      console.error(error);
+      setReplying(false);
+      setReplyError('Could not send your reply right now. Please try again in a moment.');
+      return;
+    }
+
+    setReplyContent('');
+    setShowReplyCrisis(false);
+    setReplying(false);
+    setRefreshKey((k) => k + 1);
+  }
+
+  function exitChat() {
+    setSelectedThreadId(null);
+    setReplyContent('');
+    setReplyError('');
+    setShowReplyCrisis(false);
+  }
 
   return (
     <main className="min-h-screen bg-stone-50 px-4 py-8">
       <div className="max-w-lg mx-auto">
-        <a href={backHref} className="text-sm text-stone-500 hover:text-stone-700">
-          {backLabel}
-        </a>
+        {selectedThread ? (
+          <ChatView
+            post={post}
+            thread={selectedThread}
+            currentUserId={currentUserId}
+            helpedState={helpedState}
+            onHelped={handleHelped}
+            onBack={exitChat}
+            replyContent={replyContent}
+            setReplyContent={setReplyContent}
+            replying={replying}
+            replyError={replyError}
+            setReplyError={setReplyError}
+            showReplyCrisis={showReplyCrisis}
+            setShowReplyCrisis={setShowReplyCrisis}
+            onReply={handleReply}
+          />
+        ) : (
+          <>
+            <a href={backHref} className="text-sm text-stone-500 hover:text-stone-700">
+              {backLabel}
+            </a>
 
-        <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4 mt-6">
-          {post.support_type && SUPPORT_LABELS[post.support_type] && (
-            <span className="inline-block text-xs font-medium bg-stone-100 text-stone-500 px-2 py-1 rounded-full mb-3">
-              Needs: {SUPPORT_LABELS[post.support_type]}
-            </span>
-          )}
-          <p className="text-stone-700 text-base leading-relaxed">{post.content}</p>
-          <div className="flex items-center gap-2 mt-3">
-            <p className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'A member of Kith')}</p>
-            <span className="text-stone-300 text-xs">·</span>
-            <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
-          </div>
-          {currentUserId && currentUserId === post.user_id && (
-            post.resolved ? (
-              <div className="mt-4 inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1.5 rounded-full text-xs font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
-                Resolved
+            <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4 mt-6">
+              {post.support_type && SUPPORT_LABELS[post.support_type] && (
+                <span className="inline-block text-xs font-medium bg-stone-100 text-stone-500 px-2 py-1 rounded-full mb-3">
+                  Needs: {SUPPORT_LABELS[post.support_type]}
+                </span>
+              )}
+              <p className="text-stone-700 text-base leading-relaxed">{post.content}</p>
+              <div className="flex items-center gap-2 mt-3">
+                <p className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'A member of Kith')}</p>
+                <span className="text-stone-300 text-xs">·</span>
+                <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
               </div>
-            ) : (
-              <button
-                onClick={handleMarkResolved}
-                disabled={resolving}
-                className="mt-4 text-xs text-stone-600 border border-stone-300 px-3 py-1.5 rounded-full hover:border-stone-800 hover:text-stone-800 transition-colors disabled:opacity-40"
-              >
-                {resolving ? 'Marking...' : 'Mark as resolved'}
-              </button>
-            )
-          )}
-        </div>
-
-        <div className="mt-4">
-          <p className="text-stone-500 text-sm">
-            {topLevelCount === 1 ? '1 person' : String(topLevelCount) + ' people'} showed up
-          </p>
-        </div>
-
-        <div className="space-y-3 mt-4">
-          {tree.length > 0 ? (
-            tree.map((node) => renderNode(node, 0))
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-stone-400 text-sm">Waiting for someone to show up.</p>
+              {currentUserId && currentUserId === post.user_id && (
+                post.resolved ? (
+                  <div className="mt-4 inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1.5 rounded-full text-xs font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
+                    Resolved
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleMarkResolved}
+                    disabled={resolving}
+                    className="mt-4 text-xs text-stone-600 border border-stone-300 px-3 py-1.5 rounded-full hover:border-stone-800 hover:text-stone-800 transition-colors disabled:opacity-40"
+                  >
+                    {resolving ? 'Marking...' : 'Mark as resolved'}
+                  </button>
+                )
+              )}
             </div>
-          )}
-        </div>
 
-        {(!currentUserId || (currentUserId !== post.user_id && !hasOwnTopLevel)) && (
-          <a href={respondHref} className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6">
-            Respond to this
-          </a>
+            <div className="mt-4">
+              <p className="text-stone-500 text-sm">
+                {topLevelCount === 1 ? '1 person' : String(topLevelCount) + ' people'} showed up
+              </p>
+            </div>
+
+            <div className="space-y-2 mt-4">
+              {tree.length > 0 ? (
+                tree.map((node) => {
+                  const isOwnThread =
+                    currentUserId != null && node.user_id === currentUserId;
+                  const canOpen = isTalker || isOwnThread;
+                  const username = node.anonymous
+                    ? 'Anonymous'
+                    : (node.profiles?.username ?? 'A member of Kith');
+                  const snippet = previewSnippet(node.content, canOpen);
+                  return (
+                    <button
+                      key={node.id}
+                      onClick={canOpen ? () => setSelectedThreadId(node.id) : undefined}
+                      disabled={!canOpen}
+                      className={
+                        'w-full text-left bg-white shadow-card rounded-xl bg-card px-5 py-4 transition-colors ' +
+                        (canOpen
+                          ? 'hover:bg-stone-50 cursor-pointer'
+                          : 'cursor-default opacity-90')
+                      }
+                    >
+                      <div className="flex items-baseline justify-between mb-1 gap-2">
+                        <p className="text-sm font-medium text-stone-700 truncate">{username}</p>
+                        <span className="text-xs text-stone-400 flex-shrink-0">{formatTimestamp(node.created_at)}</span>
+                      </div>
+                      <p className="text-sm text-stone-500 truncate">{snippet}</p>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-stone-400 text-sm">Waiting for someone to show up.</p>
+                </div>
+              )}
+            </div>
+
+            {(!currentUserId || (currentUserId !== post.user_id && !hasOwnTopLevel)) && (
+              <a href={respondHref} className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6">
+                Respond to this
+              </a>
+            )}
+          </>
         )}
       </div>
     </main>
+  );
+}
+
+function ChatView({
+  post,
+  thread,
+  currentUserId,
+  helpedState,
+  onHelped,
+  onBack,
+  replyContent,
+  setReplyContent,
+  replying,
+  replyError,
+  setReplyError,
+  showReplyCrisis,
+  setShowReplyCrisis,
+  onReply,
+}: {
+  post: Post;
+  thread: ResponseNode;
+  currentUserId: string | null;
+  helpedState: Record<number, 'confirm' | 'gone'>;
+  onHelped: (id: number) => void;
+  onBack: () => void;
+  replyContent: string;
+  setReplyContent: (v: string) => void;
+  replying: boolean;
+  replyError: string;
+  setReplyError: (v: string) => void;
+  showReplyCrisis: boolean;
+  setShowReplyCrisis: (v: boolean) => void;
+  onReply: (skipCrisisCheck?: boolean) => void | Promise<void>;
+}) {
+  const messages = flattenThread(thread);
+  const last = messages[messages.length - 1];
+  const canReply = last?.canReply ?? false;
+  const helperUsername = thread.anonymous
+    ? 'Anonymous'
+    : (thread.profiles?.username ?? 'A member of Kith');
+  const isHelperOwnThread =
+    currentUserId != null &&
+    thread.user_id === currentUserId &&
+    post.user_id !== currentUserId;
+  const helped = helpedState[thread.id];
+  const waitingOnOther =
+    !canReply &&
+    currentUserId != null &&
+    last != null &&
+    last.user_id === currentUserId;
+
+  return (
+    <>
+      <button onClick={onBack} className="text-sm text-stone-500 hover:text-stone-700">
+        ← Back
+      </button>
+
+      <div className="mt-6 mb-5 pb-4 border-b border-stone-200">
+        <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Conversation with</p>
+        <p className="text-base font-medium text-stone-700">{helperUsername}</p>
+      </div>
+
+      <div className="space-y-2">
+        {messages.map((m) => {
+          const fromTalker = m.user_id != null && m.user_id === post.user_id;
+          const username = m.anonymous
+            ? 'Anonymous'
+            : (m.profiles?.username ?? 'A member of Kith');
+          return (
+            <div
+              key={m.id}
+              className={fromTalker ? 'flex justify-end' : 'flex justify-start'}
+            >
+              <div
+                className={
+                  'max-w-[80%] px-4 py-3 ' +
+                  (fromTalker
+                    ? 'bg-stone-800 text-white rounded-2xl rounded-br-md'
+                    : 'bg-white shadow-card rounded-2xl rounded-bl-md text-stone-700')
+                }
+              >
+                <p className="text-base leading-relaxed whitespace-pre-wrap">{m.content}</p>
+                <p
+                  className={
+                    'text-xs mt-1 ' + (fromTalker ? 'text-stone-300' : 'text-stone-400')
+                  }
+                >
+                  {username} · {formatTimestamp(m.created_at)}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {isHelperOwnThread && helped !== 'gone' && (
+        <div className="mt-3 flex justify-start">
+          {helped === 'confirm' ? (
+            <p className="text-xs text-stone-400 italic">Glad you showed up.</p>
+          ) : (
+            <button
+              onClick={() => onHelped(thread.id)}
+              className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+            >
+              This helped me show up
+            </button>
+          )}
+        </div>
+      )}
+
+      {canReply ? (
+        showReplyCrisis ? (
+          <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4 mt-6">
+            <p className="text-sm font-medium text-stone-700 mb-2">One moment before this sends.</p>
+            <p className="text-sm text-stone-600 mb-3">
+              Some of what you wrote stayed with us. Are you doing okay right now?
+            </p>
+            <div className="shadow-card rounded-xl bg-card px-4 py-3 mb-3">
+              <p className="text-stone-700 text-sm font-medium mb-1">If you want to talk to someone right now</p>
+              <p className="text-stone-600 text-sm mb-1">Mentally Aware Nigeria Initiative (MANI) is a free listening line.</p>
+              <p className="text-stone-800 text-base font-semibold">{MANI_NUMBER}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowReplyCrisis(false)}
+                className="flex-1 border border-stone-300 text-stone-700 py-2 rounded-xl text-sm font-medium hover:border-stone-800 transition-colors"
+              >
+                Go back
+              </button>
+              <button
+                onClick={() => onReply(true)}
+                disabled={replying}
+                className="flex-1 bg-stone-800 text-white py-2 rounded-xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
+              >
+                {replying ? 'Sending...' : 'Send my reply'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6">
+            <div className="flex gap-2 items-end">
+              <textarea
+                placeholder="Reply with care."
+                value={replyContent}
+                onChange={(e) => {
+                  setReplyContent(e.target.value);
+                  if (replyError) setReplyError('');
+                }}
+                rows={2}
+                className="flex-1 bg-white shadow-card rounded-2xl px-4 py-3 text-stone-700 text-sm focus:outline-none resize-none"
+              />
+              <button
+                onClick={() => onReply()}
+                disabled={replying || replyContent.trim().length === 0}
+                className="bg-stone-800 text-white px-5 py-3 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
+              >
+                {replying ? 'Sending...' : 'Send'}
+              </button>
+            </div>
+            {replyError && <p className="text-sm text-red-500 mt-2">{replyError}</p>}
+          </div>
+        )
+      ) : waitingOnOther ? (
+        <p className="text-xs text-stone-400 italic mt-6 text-center">Waiting for a reply.</p>
+      ) : null}
+    </>
   );
 }
