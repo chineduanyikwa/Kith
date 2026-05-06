@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
+import CookieConsent from "./components/CookieConsent";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -45,6 +46,7 @@ export default function RootLayout({
           <span aria-hidden="true">·</span>
           <a href="/guidelines" className="hover:text-stone-600 transition-colors">Guidelines</a>
         </footer>
+        <CookieConsent />
       </body>
     </html>
   );
