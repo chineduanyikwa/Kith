@@ -33,11 +33,18 @@ export default function RootLayout({
       lang="en"
       className={`${plusJakartaSans.variable} antialiased`}
     >
-      <body>
+      <body className="min-h-screen flex flex-col">
         <Header />
-        <main className="max-w-[680px] mx-auto">
+        <main className="max-w-[680px] mx-auto w-full flex-1">
           {children}
         </main>
+        <footer className="flex items-center justify-center gap-2 text-xs text-stone-400 py-6 px-6">
+          <a href="/privacy" className="hover:text-stone-600 transition-colors">Privacy</a>
+          <span aria-hidden="true">·</span>
+          <a href="/terms" className="hover:text-stone-600 transition-colors">Terms</a>
+          <span aria-hidden="true">·</span>
+          <a href="/guidelines" className="hover:text-stone-600 transition-colors">Guidelines</a>
+        </footer>
       </body>
     </html>
   );
