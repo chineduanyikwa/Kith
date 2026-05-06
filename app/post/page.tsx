@@ -56,17 +56,33 @@ function PostForm() {
         localStorage.removeItem('kith_pending_post');
         const saved = JSON.parse(pending);
         setAutoSubmitting(true);
-        const { error: dbError } = await supabase.from('posts').insert({
-          content: saved.content,
-          category: saved.category,
-          anonymous: false,
-          support_type: saved.supportType || null,
-          user_id: currentUser.id,
-        });
+        const { data: inserted, error: dbError } = await supabase
+          .from('posts')
+          .insert({
+            content: saved.content,
+            category: saved.category,
+            anonymous: false,
+            support_type: saved.supportType || null,
+            user_id: currentUser.id,
+          })
+          .select('id')
+          .single();
         if (dbError) {
           console.error(dbError);
           setAutoSubmitting(false);
         } else {
+          if (inserted?.id) {
+            fetch('/api/notifications/helper', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                category: saved.category,
+                postId: inserted.id,
+                authorUserId: currentUser.id,
+              }),
+              keepalive: true,
+            }).catch(() => {});
+          }
           router.push('/browse/' + saved.category);
         }
       }
@@ -128,21 +144,39 @@ function PostForm() {
       return;
     }
 
-    const { error: dbError } = await supabase.from('posts').insert({
-      content,
-      category,
-      anonymous: hideUsername,
-      support_type: supportType || null,
-      user_id: currentUser.id,
-    });
+    const { data: inserted, error: dbError } = await supabase
+      .from('posts')
+      .insert({
+        content,
+        category,
+        anonymous: hideUsername,
+        support_type: supportType || null,
+        user_id: currentUser.id,
+      })
+      .select('id')
+      .single();
     setLoading(false);
     if (dbError) {
       console.error(dbError);
       setError('Could not share your post right now. Please try again in a moment.');
-    } else if (isCrisis) {
-      setShowCrisisFollowUp(true);
     } else {
-      router.push('/browse/' + category);
+      if (inserted?.id) {
+        fetch('/api/notifications/helper', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category,
+            postId: inserted.id,
+            authorUserId: currentUser.id,
+          }),
+          keepalive: true,
+        }).catch(() => {});
+      }
+      if (isCrisis) {
+        setShowCrisisFollowUp(true);
+      } else {
+        router.push('/browse/' + category);
+      }
     }
   }
 
