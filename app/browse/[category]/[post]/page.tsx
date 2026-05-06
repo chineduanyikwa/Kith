@@ -466,9 +466,11 @@ function ChatView({
   const messages = flattenThread(thread);
   const last = messages[messages.length - 1];
   const canReply = last?.canReply ?? false;
-  const helperUsername = thread.anonymous
-    ? 'Anonymous'
-    : (thread.profiles?.username ?? 'A member of Kith');
+  const viewerIsTalker =
+    currentUserId != null && post.user_id != null && currentUserId === post.user_id;
+  const otherUsername = viewerIsTalker
+    ? (thread.anonymous ? 'Anonymous' : (thread.profiles?.username ?? 'A member of Kith'))
+    : (post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'A member of Kith'));
   const isHelperOwnThread =
     currentUserId != null &&
     thread.user_id === currentUserId &&
@@ -488,7 +490,7 @@ function ChatView({
 
       <div className="mt-6 mb-5 pb-4 border-b border-stone-200">
         <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Conversation with</p>
-        <p className="text-base font-medium text-stone-700">{helperUsername}</p>
+        <p className="text-base font-medium text-stone-700">{otherUsername}</p>
       </div>
 
       <div className="space-y-2">
