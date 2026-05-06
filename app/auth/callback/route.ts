@@ -42,6 +42,13 @@ export async function GET(request: NextRequest) {
         id: data.user.id,
         username: pendingUsername,
       });
+      if (data.user.email) {
+        await fetch(`${origin}/api/notifications/welcome`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: data.user.email }),
+        }).catch(() => {});
+      }
     }
   }
 
