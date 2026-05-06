@@ -100,7 +100,11 @@ export default function PostPage({
   const [resolving, setResolving] = useState(false);
   const [helpedState, setHelpedState] = useState<Record<number, 'confirm' | 'gone'>>({});
 
-  const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState<number | null>(() => {
+    const t = searchParams.get('thread');
+    const n = t ? parseInt(t, 10) : NaN;
+    return Number.isFinite(n) ? n : null;
+  });
   const [replyContent, setReplyContent] = useState('');
   const [replying, setReplying] = useState(false);
   const [replyError, setReplyError] = useState('');
@@ -354,11 +358,27 @@ export default function PostPage({
     setRefreshKey((k) => k + 1);
   }
 
+  function setThreadInUrl(id: number | null) {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (id == null) params.delete('thread');
+    else params.set('thread', String(id));
+    const qs = params.toString();
+    const url = window.location.pathname + (qs ? '?' + qs : '');
+    window.history.pushState(null, '', url);
+  }
+
+  function openThread(id: number) {
+    setSelectedThreadId(id);
+    setThreadInUrl(id);
+  }
+
   function exitChat() {
     setSelectedThreadId(null);
     setReplyContent('');
     setReplyError('');
     setShowReplyCrisis(false);
+    setThreadInUrl(null);
   }
 
   return (
@@ -439,7 +459,7 @@ export default function PostPage({
                   return (
                     <button
                       key={node.id}
-                      onClick={canOpen ? () => setSelectedThreadId(node.id) : undefined}
+                      onClick={canOpen ? () => openThread(node.id) : undefined}
                       disabled={!canOpen}
                       className={
                         'w-full text-left bg-white shadow-card rounded-xl bg-card px-5 py-4 transition-colors ' +
@@ -623,7 +643,7 @@ function ChatView({
                   if (replyError) setReplyError('');
                 }}
                 rows={2}
-                className="flex-1 bg-white shadow-card rounded-2xl px-4 py-3 text-stone-700 text-sm focus:outline-none resize-none"
+                className="flex-1 bg-white shadow-card rounded-2xl px-4 py-3 text-stone-700 text-base focus:outline-none resize-none"
               />
               <button
                 onClick={() => onReply()}
