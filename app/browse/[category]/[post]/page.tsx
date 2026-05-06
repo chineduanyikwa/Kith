@@ -392,7 +392,10 @@ export default function PostPage({
                   const username = node.anonymous
                     ? 'Anonymous'
                     : (node.profiles?.username ?? 'A member of Kith');
-                  const snippet = previewSnippet(node.content, canOpen);
+                  const hidePreview = !isTalker && !isOwnThread;
+                  const snippet = hidePreview
+                    ? 'Showed up for this post.'
+                    : previewSnippet(node.content, canOpen);
                   return (
                     <button
                       key={node.id}
@@ -409,7 +412,7 @@ export default function PostPage({
                         <p className="text-sm font-medium text-stone-700 truncate">{username}</p>
                         <span className="text-xs text-stone-400 flex-shrink-0">{formatTimestamp(node.created_at)}</span>
                       </div>
-                      <p className="text-sm text-stone-500 truncate">{snippet}</p>
+                      <p className={'text-sm truncate ' + (hidePreview ? 'text-stone-400 italic' : 'text-stone-500')}>{snippet}</p>
                     </button>
                   );
                 })
