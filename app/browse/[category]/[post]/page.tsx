@@ -394,7 +394,7 @@ export default function PostPage({
                     : (node.profiles?.username ?? 'A member of Kith');
                   const hidePreview = !isTalker && !isOwnThread;
                   const snippet = hidePreview
-                    ? 'Showed up for this post.'
+                    ? 'Responded to this post.'
                     : previewSnippet(node.content, canOpen);
                   return (
                     <button
