@@ -219,6 +219,46 @@ export default function PostPage({
     };
   }, [postId, category, refreshKey]);
 
+  useEffect(() => {
+    const responsesChannel = supabase
+      .channel(`post-${postId}-responses`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'responses',
+          filter: `post_id=eq.${postId}`,
+        },
+        () => {
+          setRefreshKey((k) => k + 1);
+        },
+      )
+      .subscribe();
+
+    const postChannel = supabase
+      .channel(`post-${postId}-post`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'posts',
+          filter: `id=eq.${postId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Partial<Post>;
+          setPost((prev) => (prev ? { ...prev, ...updated } : prev));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      responsesChannel.unsubscribe();
+      postChannel.unsubscribe();
+    };
+  }, [postId]);
+
   const hasOwnTopLevel =
     currentUserId != null &&
     allResponses.some((r) => r.parent_id == null && r.user_id === currentUserId);
