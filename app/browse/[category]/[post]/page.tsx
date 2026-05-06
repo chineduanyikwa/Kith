@@ -538,19 +538,19 @@ function ChatView({
 
       <div className="space-y-2">
         {messages.map((m) => {
-          const fromTalker = m.user_id != null && m.user_id === post.user_id;
+          const fromViewer = m.user_id != null && m.user_id === currentUserId;
           const username = m.anonymous
             ? 'Anonymous'
             : (m.profiles?.username ?? 'A member of Kith');
           return (
             <div
               key={m.id}
-              className={fromTalker ? 'flex justify-end' : 'flex justify-start'}
+              className={fromViewer ? 'flex justify-end' : 'flex justify-start'}
             >
               <div
                 className={
                   'max-w-[80%] px-4 py-3 ' +
-                  (fromTalker
+                  (fromViewer
                     ? 'bg-stone-800 text-white rounded-2xl rounded-br-md'
                     : 'bg-white shadow-card rounded-2xl rounded-bl-md text-stone-700')
                 }
@@ -558,7 +558,7 @@ function ChatView({
                 <p className="text-base leading-relaxed whitespace-pre-wrap">{m.content}</p>
                 <p
                   className={
-                    'text-xs mt-1 ' + (fromTalker ? 'text-stone-300' : 'text-stone-400')
+                    'text-xs mt-1 ' + (fromViewer ? 'text-stone-300' : 'text-stone-400')
                   }
                 >
                   {username} · {formatTimestamp(m.created_at)}
