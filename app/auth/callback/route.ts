@@ -30,20 +30,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/auth?tab=login`);
   }
 
-  if (data.user.app_metadata?.provider === 'email') {
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', data.user.id)
-      .maybeSingle();
-    if (!existing) {
-      const pendingUsername = (data.user.user_metadata?.username as string | undefined)?.trim();
-      if (pendingUsername) {
-        await supabase.from('profiles').insert({
-          id: data.user.id,
-          username: pendingUsername,
-        });
-      }
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', data.user.id)
+    .maybeSingle();
+  if (!existing) {
+    const pendingUsername = (data.user.user_metadata?.username as string | undefined)?.trim();
+    if (pendingUsername) {
+      await supabase.from('profiles').insert({
+        id: data.user.id,
+        username: pendingUsername,
+      });
     }
   }
 
