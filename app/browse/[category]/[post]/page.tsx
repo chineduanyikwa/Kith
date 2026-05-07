@@ -592,7 +592,6 @@ function ChatView({
       return;
     }
     setReportSubmitted(true);
-    setTimeout(closeReport, 1500);
   }
   const otherUsername = viewerIsTalker
     ? (thread.anonymous ? 'Anonymous' : (thread.profiles?.username ?? 'A member of Kith'))
@@ -773,7 +772,15 @@ function ChatView({
                 : "What's the issue?"}
             </p>
             {reportSubmitted ? (
-              <p className="text-stone-600 text-sm py-6 text-center">Thanks. We&apos;ll review this.</p>
+              <>
+                <p className="text-stone-600 text-sm py-6 text-center">Thanks. We&apos;ll review this.</p>
+                <button
+                  onClick={closeReport}
+                  className="w-full bg-stone-800 text-white py-2 rounded-xl text-sm font-medium hover:bg-stone-700 transition-colors"
+                >
+                  Close
+                </button>
+              </>
             ) : (
               <>
                 <div className="space-y-2 mb-4">
