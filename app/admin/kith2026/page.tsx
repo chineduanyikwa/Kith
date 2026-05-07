@@ -22,6 +22,7 @@ type Report = {
   created_at: string;
   content?: string;
   username?: string | null;
+  hidden?: boolean;
 };
 
 type TargetFilter = 'all' | 'post' | 'response' | 'user';
@@ -99,10 +100,14 @@ export default function AdminPage() {
         const table = report.target_type === 'post' ? 'posts' : 'responses';
         const { data: item } = await supabase
           .from(table)
-          .select('content')
+          .select('content, hidden')
           .eq('id', report.target_id)
           .single();
-        return { ...report, content: item?.content || '[content not found]' };
+        return {
+          ...report,
+          content: item?.content || '[content not found]',
+          hidden: item?.hidden ?? false,
+        };
       })
     );
   }
@@ -297,6 +302,20 @@ export default function AdminPage() {
     await supabase.from(table).delete().eq('id', report.target_id);
     await supabase.from('reports').update({ status: 'actioned' }).eq('id', report.id);
     setReports((prev) => prev.filter((r) => r.id !== report.id));
+  }
+
+  async function toggleHidden(report: Report) {
+    if (report.target_type === 'user' || report.target_id == null) return;
+    const table = report.target_type === 'post' ? 'posts' : 'responses';
+    const next = !(report.hidden ?? false);
+    const { error } = await supabase
+      .from(table)
+      .update({ hidden: next })
+      .eq('id', report.target_id);
+    if (error) return;
+    setReports((prev) =>
+      prev.map((r) => (r.id === report.id ? { ...r, hidden: next } : r)),
+    );
   }
 
   const FILTER_OPTIONS: { value: TargetFilter; label: string }[] = [
@@ -497,9 +516,22 @@ export default function AdminPage() {
             {reports.map((report) => (
               <div key={report.id} className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium bg-stone-100 text-stone-500 px-2 py-1 rounded-full">
-                    {report.target_type}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium bg-stone-100 text-stone-500 px-2 py-1 rounded-full">
+                      {report.target_type}
+                    </span>
+                    {report.target_type !== 'user' && (
+                      <span
+                        className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          report.hidden
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-emerald-50 text-emerald-700'
+                        }`}
+                      >
+                        {report.hidden ? 'hidden' : 'visible'}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs text-stone-400">
                     {new Date(report.created_at).toLocaleDateString()}
                   </span>
@@ -573,12 +605,20 @@ export default function AdminPage() {
                     Dismiss
                   </button>
                   {report.target_type !== 'user' && (
-                    <button
-                      onClick={() => deleteContent(report)}
-                      className="flex-1 bg-red-50 border border-red-200 text-red-600 text-sm py-2 px-4 rounded-xl hover:bg-red-100 transition-colors"
-                    >
-                      Delete content
-                    </button>
+                    <>
+                      <button
+                        onClick={() => toggleHidden(report)}
+                        className="flex-1 bg-amber-50 border border-amber-200 text-amber-700 text-sm py-2 px-4 rounded-xl hover:bg-amber-100 transition-colors"
+                      >
+                        {report.hidden ? 'Unhide' : 'Hide'}
+                      </button>
+                      <button
+                        onClick={() => deleteContent(report)}
+                        className="flex-1 bg-red-50 border border-red-200 text-red-600 text-sm py-2 px-4 rounded-xl hover:bg-red-100 transition-colors"
+                      >
+                        Delete content
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

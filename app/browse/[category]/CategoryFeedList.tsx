@@ -43,6 +43,7 @@ export default function CategoryFeedList({
       .from('posts')
       .select('*, profiles!posts_user_id_profiles_fkey(username)')
       .eq('category', category)
+      .eq('hidden', false)
       .order('created_at', { ascending: false })
       .range(from, to)
 

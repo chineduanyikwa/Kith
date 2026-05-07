@@ -200,12 +200,14 @@ export default function PostPage({
         .from('posts')
         .select('*, profiles!posts_user_id_profiles_fkey(username)')
         .eq('id', postId)
+        .eq('hidden', false)
         .single();
 
       const { data: responseData } = await supabase
         .from('responses')
         .select('*, profiles!responses_user_id_profiles_fkey(username)')
         .eq('post_id', postId)
+        .eq('hidden', false)
         .order('created_at', { ascending: true });
 
       if (postData) {

@@ -8,7 +8,7 @@ export default async function Browse({
 }) {
   const { intent } = await searchParams;
 
-  const { data: rows } = await supabase.from('posts').select('category')
+  const { data: rows } = await supabase.from('posts').select('category').eq('hidden', false)
   const counts: Record<string, number> = {}
   for (const row of rows ?? []) {
     counts[row.category] = (counts[row.category] || 0) + 1

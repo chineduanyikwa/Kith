@@ -50,11 +50,13 @@ export default async function PublicProfilePage({ params }: Props) {
     supabase
       .from('posts')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', profile.id),
+      .eq('user_id', profile.id)
+      .eq('hidden', false),
     supabase
       .from('responses')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', profile.id)
+      .eq('hidden', false)
       .is('parent_id', null),
   ]);
 
