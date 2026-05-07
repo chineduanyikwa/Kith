@@ -30,6 +30,14 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  if (request.nextUrl.pathname.startsWith('/browse')) {
+    if (!user) {
+      const authUrl = new URL('/auth', request.url)
+      authUrl.searchParams.set('next', request.nextUrl.pathname)
+      return NextResponse.redirect(authUrl)
+    }
+  }
+
   return response
 }
 
