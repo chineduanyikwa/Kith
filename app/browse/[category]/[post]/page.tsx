@@ -766,11 +766,6 @@ function ChatView({
             <p className="text-stone-800 text-base font-medium mb-1">
               {reportTarget.kind === 'user' ? 'Report user' : 'Report this message'}
             </p>
-            <p className="text-stone-500 text-sm mb-4">
-              {reportTarget.kind === 'user'
-                ? `You are reporting ${reportTarget.username}.`
-                : "What's the issue?"}
-            </p>
             {reportSubmitted ? (
               <>
                 <p className="text-stone-600 text-sm py-6 text-center">Thanks. We&apos;ll review this.</p>
@@ -783,6 +778,11 @@ function ChatView({
               </>
             ) : (
               <>
+                <p className="text-stone-500 text-sm mb-4">
+                  {reportTarget.kind === 'user'
+                    ? `You are reporting ${reportTarget.username}.`
+                    : "What's the issue?"}
+                </p>
                 <div className="space-y-2 mb-4">
                   {REPORT_REASONS.map((reason) => (
                     <button
