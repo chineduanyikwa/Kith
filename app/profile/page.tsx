@@ -93,7 +93,8 @@ export default function ProfilePage() {
       const { data: postsData } = await supabase
         .from('posts')
         .select('id, content, category, support_type, created_at')
-        .eq('user_id', me);
+        .eq('user_id', me)
+        .eq('hidden', false);
       const myPosts = (postsData ?? []) as Post[];
 
       // Section 2: my top-level responses (parent_id null)
@@ -101,6 +102,7 @@ export default function ProfilePage() {
         .from('responses')
         .select('id, content, post_id, created_at')
         .eq('user_id', me)
+        .eq('hidden', false)
         .is('parent_id', null);
       type MyTopResp = { id: number; content: string; post_id: number; created_at: string };
       const myTopResp = (respData ?? []) as MyTopResp[];
@@ -121,6 +123,7 @@ export default function ProfilePage() {
             .from('posts')
             .select('id, content, category, user_id, anonymous, profiles!posts_user_id_profiles_fkey(username)')
             .in('id', respPostIds)
+            .eq('hidden', false)
         : { data: [] as PostForResp[] };
       const postsForResp = new Map<number, PostForResp>(
         ((respPostsData ?? []) as PostForResp[]).map((p) => [p.id, p]),
@@ -142,6 +145,7 @@ export default function ProfilePage() {
             .from('responses')
             .select('id, post_id, parent_id, created_at')
             .in('post_id', involvedPostIds)
+            .eq('hidden', false)
         : { data: [] as AnyResp[] };
       const allResp = (allRespData ?? []) as AnyResp[];
 

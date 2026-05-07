@@ -124,6 +124,7 @@ function RespondForm() {
         .from('posts')
         .select('content, anonymous, support_type, user_id')
         .eq('id', postId)
+        .eq('hidden', false)
         .single()
       if (data) setPost(data)
     }
@@ -137,6 +138,7 @@ function RespondForm() {
         .from('responses')
         .select('id, content, user_id, parent_id, anonymous, profiles!responses_user_id_profiles_fkey(username)')
         .eq('id', parentId)
+        .eq('hidden', false)
         .single<ParentResponse>()
       if (data) setParent(data)
     }

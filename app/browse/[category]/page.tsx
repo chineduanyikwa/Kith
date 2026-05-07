@@ -33,6 +33,7 @@ export default async function CategoryFeed({
     .from('posts')
     .select('*, profiles!posts_user_id_profiles_fkey(username)')
     .eq('category', category)
+    .eq('hidden', false)
     .order('created_at', { ascending: false })
     .range(0, PAGE_SIZE - 1)
 
