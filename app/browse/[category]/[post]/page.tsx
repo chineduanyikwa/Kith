@@ -521,6 +521,9 @@ export default function PostPage({
             )}
           </>
         )}
+        <p className="text-xs text-stone-400 text-center pt-12">
+          Kith is a peer support community, not a substitute for professional help.
+        </p>
       </div>
     </main>
   );
