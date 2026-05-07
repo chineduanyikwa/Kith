@@ -82,7 +82,7 @@ function AuthForm() {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(searchParams.get('error') ?? '');
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
@@ -236,6 +236,28 @@ function AuthForm() {
       setError(typeof data.error === 'string' ? data.error : 'Could not sign in right now. Please try again in a moment.');
       setLoading(false);
       return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('banned, suspended_until')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profile?.banned) {
+        await supabase.auth.signOut();
+        setError('Your account has been permanently banned.');
+        setLoading(false);
+        return;
+      }
+      if (profile?.suspended_until && new Date(profile.suspended_until) > new Date()) {
+        const until = new Date(profile.suspended_until).toLocaleString();
+        await supabase.auth.signOut();
+        setError(`Your account is suspended until ${until}.`);
+        setLoading(false);
+        return;
+      }
     }
 
     // The server set the auth cookies on the response; do a full navigation so

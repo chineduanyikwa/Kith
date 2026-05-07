@@ -23,6 +23,8 @@ type Report = {
   content?: string;
   username?: string | null;
   hidden?: boolean;
+  banned?: boolean;
+  suspended_until?: string | null;
 };
 
 type TargetFilter = 'all' | 'post' | 'response' | 'user';
@@ -92,10 +94,15 @@ export default function AdminPage() {
         if (report.target_type === 'user') {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('username')
+            .select('username, banned, suspended_until')
             .eq('id', report.target_user_id)
             .single();
-          return { ...report, username: profile?.username ?? null };
+          return {
+            ...report,
+            username: profile?.username ?? null,
+            banned: profile?.banned ?? false,
+            suspended_until: profile?.suspended_until ?? null,
+          };
         }
         const table = report.target_type === 'post' ? 'posts' : 'responses';
         const { data: item } = await supabase
@@ -292,27 +299,72 @@ export default function AdminPage() {
   }
 
   async function dismissReport(reportId: number) {
-    await supabase.from('reports').update({ status: 'dismissed' }).eq('id', reportId);
+    const res = await fetch('/api/admin/dismiss', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ report_id: reportId }),
+    });
+    if (!res.ok) return;
     setReports((prev) => prev.filter((r) => r.id !== reportId));
   }
 
   async function deleteContent(report: Report) {
     if (report.target_type === 'user' || report.target_id == null) return;
-    const table = report.target_type === 'post' ? 'posts' : 'responses';
-    await supabase.from(table).delete().eq('id', report.target_id);
-    await supabase.from('reports').update({ status: 'actioned' }).eq('id', report.id);
+    const res = await fetch('/api/admin/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        target_type: report.target_type,
+        target_id: report.target_id,
+      }),
+    });
+    if (!res.ok) return;
     setReports((prev) => prev.filter((r) => r.id !== report.id));
+  }
+
+  async function suspendUser(report: Report, days: 7 | 30) {
+    if (report.target_type !== 'user' || !report.target_user_id) return;
+    const action = days === 7 ? 'suspend_7' : 'suspend_30';
+    const res = await fetch('/api/admin/ban', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: report.target_user_id, action }),
+    });
+    if (!res.ok) return;
+    const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id === report.id ? { ...r, suspended_until: until } : r,
+      ),
+    );
+  }
+
+  async function banUser(report: Report) {
+    if (report.target_type !== 'user' || !report.target_user_id) return;
+    const res = await fetch('/api/admin/ban', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: report.target_user_id, action: 'ban' }),
+    });
+    if (!res.ok) return;
+    setReports((prev) =>
+      prev.map((r) => (r.id === report.id ? { ...r, banned: true } : r)),
+    );
   }
 
   async function toggleHidden(report: Report) {
     if (report.target_type === 'user' || report.target_id == null) return;
-    const table = report.target_type === 'post' ? 'posts' : 'responses';
     const next = !(report.hidden ?? false);
-    const { error } = await supabase
-      .from(table)
-      .update({ hidden: next })
-      .eq('id', report.target_id);
-    if (error) return;
+    const res = await fetch('/api/admin/hide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        target_type: report.target_type,
+        target_id: report.target_id,
+        hidden: next,
+      }),
+    });
+    if (!res.ok) return;
     setReports((prev) =>
       prev.map((r) => (r.id === report.id ? { ...r, hidden: next } : r)),
     );
@@ -539,9 +591,21 @@ export default function AdminPage() {
 
                 {report.target_type === 'user' ? (
                   <>
-                    <p className="text-stone-700 text-sm leading-relaxed mb-2">
-                      @{report.username ?? '[user not found]'}
-                    </p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-stone-700 text-sm leading-relaxed">
+                        @{report.username ?? '[user not found]'}
+                      </p>
+                      {report.banned ? (
+                        <span className="text-xs font-medium bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                          Banned
+                        </span>
+                      ) : report.suspended_until &&
+                        new Date(report.suspended_until) > new Date() ? (
+                        <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                          Suspended until {new Date(report.suspended_until).toLocaleDateString()}
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="text-xs text-stone-400 mb-4">Reason: {report.reason}</p>
                     {report.username && (
                       <a
@@ -597,7 +661,7 @@ export default function AdminPage() {
                   </>
                 )}
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <button
                     onClick={() => dismissReport(report.id)}
                     className="flex-1 border border-stone-200 text-stone-600 text-sm py-2 px-4 rounded-xl hover:bg-stone-50 transition-colors"
@@ -617,6 +681,28 @@ export default function AdminPage() {
                         className="flex-1 bg-red-50 border border-red-200 text-red-600 text-sm py-2 px-4 rounded-xl hover:bg-red-100 transition-colors"
                       >
                         Delete content
+                      </button>
+                    </>
+                  )}
+                  {report.target_type === 'user' && (
+                    <>
+                      <button
+                        onClick={() => suspendUser(report, 7)}
+                        className="flex-1 bg-amber-50 border border-amber-200 text-amber-700 text-sm py-2 px-4 rounded-xl hover:bg-amber-100 transition-colors"
+                      >
+                        Suspend 7 days
+                      </button>
+                      <button
+                        onClick={() => suspendUser(report, 30)}
+                        className="flex-1 bg-amber-50 border border-amber-200 text-amber-700 text-sm py-2 px-4 rounded-xl hover:bg-amber-100 transition-colors"
+                      >
+                        Suspend 30 days
+                      </button>
+                      <button
+                        onClick={() => banUser(report)}
+                        className="flex-1 bg-red-50 border border-red-200 text-red-600 text-sm py-2 px-4 rounded-xl hover:bg-red-100 transition-colors"
+                      >
+                        Ban permanently
                       </button>
                     </>
                   )}
