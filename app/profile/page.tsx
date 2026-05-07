@@ -269,7 +269,7 @@ export default function ProfilePage() {
 
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ username: trimmed })
+        .update({ username: trimmed, needs_username: false })
         .eq('id', userId);
       if (updateError) {
         const msg = (updateError.message ?? '').toLowerCase();

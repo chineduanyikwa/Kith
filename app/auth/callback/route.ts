@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
   const { data: existing } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, needs_username')
     .eq('id', data.user.id)
     .maybeSingle();
   if (!existing) {
@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
       await supabase.from('profiles').insert({
         id: data.user.id,
         username: pendingUsername,
+        needs_username: false,
       });
       if (data.user.email) {
         await fetch(`${origin}/api/notifications/welcome`, {
@@ -54,6 +55,14 @@ export async function GET(request: NextRequest) {
         }).catch(() => {});
       }
     }
+  } else if (existing.needs_username) {
+    const usernameRedirect = NextResponse.redirect(
+      `${origin}/auth/username?next=${encodeURIComponent(next)}`,
+    );
+    response.cookies.getAll().forEach((cookie) => {
+      usernameRedirect.cookies.set(cookie);
+    });
+    return usernameRedirect;
   }
 
   return response;
