@@ -66,6 +66,9 @@ export default function ProfilePage() {
   const [usernameSuccess, setUsernameSuccess] = useState(false);
   const [savingUsername, setSavingUsername] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [pendingDeleteChoice, setPendingDeleteChoice] = useState<
+    'keep' | 'remove' | null
+  >(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
@@ -313,11 +316,15 @@ export default function ProfilePage() {
     setPosts((prev) => prev.filter((p) => p.id !== postId));
   }
 
-  async function handleDeleteAccount() {
+  async function handleDeleteAccount(keepContent: boolean) {
     setDeletingAccount(true);
     setDeleteError('');
     try {
-      const res = await fetch('/api/account/delete', { method: 'POST' });
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keepContent }),
+      });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
         setDeleteError(body?.error ?? 'Could not delete your account right now. Please try again in a moment.');
@@ -539,17 +546,65 @@ export default function ProfilePage() {
               type="button"
               onClick={() => {
                 setDeleteError('');
+                setPendingDeleteChoice(null);
                 setConfirmingDelete(true);
               }}
               className="text-sm text-red-600/80 hover:text-red-700 transition-colors"
             >
               Delete account
             </button>
+          ) : pendingDeleteChoice === null ? (
+            <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4 space-y-4">
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteError('');
+                    setPendingDeleteChoice('keep');
+                  }}
+                  className="text-sm font-medium text-stone-800 hover:text-red-700 transition-colors"
+                >
+                  Delete account, keep content
+                </button>
+                <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                  Your posts and responses will remain visible but will appear as Anonymous.
+                </p>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteError('');
+                    setPendingDeleteChoice('remove');
+                  }}
+                  className="text-sm font-medium text-stone-800 hover:text-red-700 transition-colors"
+                >
+                  Delete account and remove all content
+                </button>
+                <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                  Your posts, responses, and all activity will be permanently removed.
+                </p>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmingDelete(false);
+                    setPendingDeleteChoice(null);
+                    setDeleteError('');
+                  }}
+                  className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
               <p className="text-sm text-stone-700 leading-relaxed">
-                This will permanently delete your account and all your posts and responses.
-                This cannot be undone.
+                {pendingDeleteChoice === 'keep'
+                  ? 'This will permanently delete your account. Your posts and responses will remain visible but will appear as Anonymous. This cannot be undone.'
+                  : 'This will permanently delete your account along with all your posts and responses. This cannot be undone.'}
               </p>
               {deleteError && (
                 <p className="text-xs text-red-500 mt-3">{deleteError}</p>
@@ -557,22 +612,28 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 mt-4">
                 <button
                   type="button"
-                  onClick={handleDeleteAccount}
+                  onClick={() =>
+                    handleDeleteAccount(pendingDeleteChoice === 'keep')
+                  }
                   disabled={deletingAccount}
                   className="bg-red-600 text-white py-1.5 px-3 rounded-xl text-xs font-medium hover:bg-red-700 transition-colors disabled:opacity-40"
                 >
-                  {deletingAccount ? 'Deleting...' : 'Yes, delete my account'}
+                  {deletingAccount
+                    ? 'Deleting...'
+                    : pendingDeleteChoice === 'keep'
+                    ? 'Yes, delete my account and keep my content'
+                    : 'Yes, delete my account and remove my content'}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    setConfirmingDelete(false);
+                    setPendingDeleteChoice(null);
                     setDeleteError('');
                   }}
                   disabled={deletingAccount}
                   className="text-xs text-stone-400 hover:text-stone-600 transition-colors disabled:opacity-40"
                 >
-                  Cancel
+                  Back
                 </button>
               </div>
             </div>

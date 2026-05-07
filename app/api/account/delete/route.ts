@@ -6,6 +6,11 @@ import { supabaseUrl, supabaseKey } from '@/lib/supabase';
 export async function POST(request: NextRequest) {
   const response = NextResponse.json({ ok: true });
 
+  const body = (await request.json().catch(() => null)) as
+    | { keepContent?: boolean }
+    | null;
+  const keepContent = body?.keepContent === true;
+
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
       getAll: () =>
@@ -30,19 +35,23 @@ export async function POST(request: NextRequest) {
   const RETRYABLE_DELETE_ERROR =
     'Could not delete your account right now. Please try again in a moment.';
 
-  const { error: respError } = await supabase
-    .from('responses')
-    .delete()
-    .eq('user_id', userId);
+  const { error: respError } = keepContent
+    ? await supabase
+        .from('responses')
+        .update({ user_id: null })
+        .eq('user_id', userId)
+    : await supabase.from('responses').delete().eq('user_id', userId);
   if (respError) {
     console.error('account delete: responses', respError);
     return NextResponse.json({ error: RETRYABLE_DELETE_ERROR }, { status: 500 });
   }
 
-  const { error: postsError } = await supabase
-    .from('posts')
-    .delete()
-    .eq('user_id', userId);
+  const { error: postsError } = keepContent
+    ? await supabase
+        .from('posts')
+        .update({ user_id: null })
+        .eq('user_id', userId)
+    : await supabase.from('posts').delete().eq('user_id', userId);
   if (postsError) {
     console.error('account delete: posts', postsError);
     return NextResponse.json({ error: RETRYABLE_DELETE_ERROR }, { status: 500 });

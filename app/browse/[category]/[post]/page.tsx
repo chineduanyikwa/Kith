@@ -481,7 +481,7 @@ export default function PostPage({
               )}
               <p className="text-stone-700 text-base leading-relaxed">{post.content}</p>
               <div className="flex items-center gap-2 mt-3">
-                <p className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'A member of Kith')}</p>
+                <p className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'Anonymous')}</p>
                 <span className="text-stone-300 text-xs">·</span>
                 <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
               </div>
@@ -517,7 +517,7 @@ export default function PostPage({
                   const canOpen = isTalker || isOwnThread;
                   const username = node.anonymous
                     ? 'Anonymous'
-                    : (node.profiles?.username ?? 'A member of Kith');
+                    : (node.profiles?.username ?? 'Anonymous');
                   const hidePreview = !isTalker && !isOwnThread;
                   const snippet = hidePreview
                     ? 'Responded to this post.'
@@ -677,8 +677,8 @@ function ChatView({
     setReportSubmitted(true);
   }
   const otherUsername = viewerIsTalker
-    ? (thread.anonymous ? 'Anonymous' : (thread.profiles?.username ?? 'A member of Kith'))
-    : (post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'A member of Kith'));
+    ? (thread.anonymous ? 'Anonymous' : (thread.profiles?.username ?? 'Anonymous'))
+    : (post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'Anonymous'));
   const otherUserId = viewerIsTalker ? thread.user_id : post.user_id;
   const canReportOtherUser =
     currentUserId != null && otherUserId != null && otherUserId !== currentUserId;
@@ -782,7 +782,7 @@ function ChatView({
           const fromViewer = m.user_id != null && m.user_id === currentUserId;
           const username = m.anonymous
             ? 'Anonymous'
-            : (m.profiles?.username ?? 'A member of Kith');
+            : (m.profiles?.username ?? 'Anonymous');
           const canReportMessage =
             currentUserId != null && m.user_id != null && m.user_id !== currentUserId;
           return (
