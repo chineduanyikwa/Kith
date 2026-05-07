@@ -610,6 +610,8 @@ function ChatView({
   const [blockSubmitting, setBlockSubmitting] = useState(false);
   const [blockConfirmed, setBlockConfirmed] = useState(false);
   const [blockError, setBlockError] = useState('');
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [unblockConfirmed, setUnblockConfirmed] = useState(false);
 
   async function handleBlockUser(userId: string) {
     if (blockSubmitting || !currentUserId) return;
@@ -626,7 +628,28 @@ function ChatView({
       setBlockError('Could not block this user right now. Please try again in a moment.');
       return;
     }
+    setIsBlocked(true);
     setBlockConfirmed(true);
+  }
+
+  async function handleUnblockUser(userId: string) {
+    if (blockSubmitting || !currentUserId) return;
+    setHeaderMenuOpen(false);
+    setBlockError('');
+    setBlockSubmitting(true);
+    const { error } = await supabase
+      .from('blocks')
+      .delete()
+      .eq('blocker_id', currentUserId)
+      .eq('blocked_id', userId);
+    setBlockSubmitting(false);
+    if (error) {
+      console.error(error);
+      setBlockError('Could not unblock this user right now. Please try again in a moment.');
+      return;
+    }
+    setIsBlocked(false);
+    setUnblockConfirmed(true);
   }
 
   function closeReport() {
@@ -669,6 +692,26 @@ function ChatView({
     currentUserId != null &&
     last != null &&
     last.user_id === currentUserId;
+
+  useEffect(() => {
+    if (!currentUserId || !otherUserId || otherUserId === currentUserId) {
+      setIsBlocked(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('blocks')
+        .select('id')
+        .eq('blocker_id', currentUserId)
+        .eq('blocked_id', otherUserId)
+        .limit(1);
+      if (!cancelled) setIsBlocked((data?.length ?? 0) > 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUserId, otherUserId]);
 
   return (
     <>
@@ -714,11 +757,17 @@ function ChatView({
                     </button>
                     <button
                       role="menuitem"
-                      onClick={() => handleBlockUser(otherUserId!)}
+                      onClick={() =>
+                        isBlocked
+                          ? handleUnblockUser(otherUserId!)
+                          : handleBlockUser(otherUserId!)
+                      }
                       disabled={blockSubmitting}
                       className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 disabled:opacity-40"
                     >
-                      {blockSubmitting ? 'Blocking…' : 'Block user'}
+                      {blockSubmitting
+                        ? (isBlocked ? 'Unblocking…' : 'Blocking…')
+                        : (isBlocked ? 'Unblock user' : 'Block user')}
                     </button>
                   </div>
                 </>
@@ -846,12 +895,13 @@ function ChatView({
         <p className="text-xs text-stone-400 italic mt-6 text-center">Waiting for a reply.</p>
       ) : null}
 
-      {(blockConfirmed || blockError) && (
+      {(blockConfirmed || unblockConfirmed || blockError) && (
         <div
           className="fixed inset-0 bg-stone-900/40 flex items-center justify-center px-4 z-50"
           onClick={() => {
             if (!blockSubmitting) {
               setBlockConfirmed(false);
+              setUnblockConfirmed(false);
               setBlockError('');
             }
           }}
@@ -861,11 +911,16 @@ function ChatView({
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-stone-600 text-sm py-6 text-center">
-              {blockError ? blockError : 'This user has been blocked.'}
+              {blockError
+                ? blockError
+                : unblockConfirmed
+                ? 'User has been unblocked.'
+                : 'This user has been blocked.'}
             </p>
             <button
               onClick={() => {
                 setBlockConfirmed(false);
+                setUnblockConfirmed(false);
                 setBlockError('');
               }}
               className="w-full bg-stone-800 text-white py-2 rounded-xl text-sm font-medium hover:bg-stone-700 transition-colors"
