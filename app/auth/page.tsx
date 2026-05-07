@@ -111,6 +111,7 @@ function AuthForm() {
             await supabase.from('profiles').insert({
               id: session.user.id,
               username: randomUsername,
+              needs_username: true,
             });
           }
         } else if (session.user.app_metadata?.provider === 'email') {
@@ -125,6 +126,7 @@ function AuthForm() {
               await supabase.from('profiles').insert({
                 id: session.user.id,
                 username: pendingUsername,
+                needs_username: false,
               });
             }
           }
@@ -186,6 +188,7 @@ function AuthForm() {
       const { error: profileError } = await supabase.from('profiles').insert({
         id: data.user.id,
         username: trimmedUsername,
+        needs_username: false,
       });
       if (profileError) {
         if (isUniqueViolation(profileError)) {
