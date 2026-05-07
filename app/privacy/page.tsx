@@ -1,5 +1,6 @@
 export const metadata = {
-  title: 'Privacy — Kith',
+  title: 'Privacy Policy — Kith',
+  description: 'How Kith handles your data and protects your privacy.',
 };
 
 export default function PrivacyPage() {

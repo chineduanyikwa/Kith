@@ -1,5 +1,6 @@
 export const metadata = {
-  title: 'Terms — Kith',
+  title: 'Terms of Service — Kith',
+  description: 'The terms governing your use of Kith.',
 };
 
 export default function TermsPage() {
