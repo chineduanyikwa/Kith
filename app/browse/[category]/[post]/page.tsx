@@ -763,9 +763,6 @@ function ChatView({
             className="bg-white rounded-2xl px-5 py-5 max-w-sm w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-stone-800 text-base font-medium mb-1">
-              {reportTarget.kind === 'user' ? 'Report user' : 'Report this message'}
-            </p>
             {reportSubmitted ? (
               <>
                 <p className="text-stone-600 text-sm py-6 text-center">Thanks. We&apos;ll review this.</p>
@@ -778,6 +775,9 @@ function ChatView({
               </>
             ) : (
               <>
+                <p className="text-stone-800 text-base font-medium mb-1">
+                  {reportTarget.kind === 'user' ? 'Report user' : 'Report this message'}
+                </p>
                 <p className="text-stone-500 text-sm mb-4">
                   {reportTarget.kind === 'user'
                     ? `You are reporting ${reportTarget.username}.`
