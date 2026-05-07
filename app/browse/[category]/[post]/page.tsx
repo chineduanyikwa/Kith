@@ -13,6 +13,37 @@ const SUPPORT_LABELS: Record<string, string> = {
   shared_experience: 'Shared experience',
 };
 
+const REPORT_REASONS = [
+  'Harmful advice',
+  'Judgment or shaming',
+  'Abuse or insults',
+  'Sexual or inappropriate content',
+  'Manipulative behavior',
+  'Spam or irrelevant',
+  'Something else',
+];
+
+type ReportTarget =
+  | { kind: 'response'; id: number }
+  | { kind: 'user'; userId: string; username: string };
+
+function FlagIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M4 21V4M4 4h13l-2 4 2 4H4" />
+    </svg>
+  );
+}
+
 type Post = {
   id: number;
   content: string;
@@ -531,9 +562,44 @@ function ChatView({
   const canReply = last?.canReply ?? false;
   const viewerIsTalker =
     currentUserId != null && post.user_id != null && currentUserId === post.user_id;
+
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
+  const [reportReason, setReportReason] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [reportError, setReportError] = useState('');
+
+  function closeReport() {
+    setReportTarget(null);
+    setReportReason('');
+    setReportError('');
+    setReportSubmitted(false);
+  }
+
+  async function handleReportSubmit() {
+    if (!reportTarget || !reportReason || reportSubmitting) return;
+    setReportError('');
+    setReportSubmitting(true);
+    const payload =
+      reportTarget.kind === 'response'
+        ? { target_type: 'response', target_id: reportTarget.id, reason: reportReason, status: 'open' }
+        : { target_type: 'user', target_user_id: reportTarget.userId, reason: reportReason, status: 'open' };
+    const { error } = await supabase.from('reports').insert(payload);
+    setReportSubmitting(false);
+    if (error) {
+      console.error(error);
+      setReportError('Could not send your report right now. Please try again in a moment.');
+      return;
+    }
+    setReportSubmitted(true);
+    setTimeout(closeReport, 1500);
+  }
   const otherUsername = viewerIsTalker
     ? (thread.anonymous ? 'Anonymous' : (thread.profiles?.username ?? 'A member of Kith'))
     : (post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'A member of Kith'));
+  const otherUserId = viewerIsTalker ? thread.user_id : post.user_id;
+  const canReportOtherUser =
+    currentUserId != null && otherUserId != null && otherUserId !== currentUserId;
   const isHelperOwnThread =
     currentUserId != null &&
     thread.user_id === currentUserId &&
@@ -553,7 +619,20 @@ function ChatView({
 
       <div className="mt-6 mb-5 pb-4 border-b border-stone-200">
         <p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Conversation with</p>
-        <p className="text-base font-medium text-stone-700">{otherUsername}</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-base font-medium text-stone-700">{otherUsername}</p>
+          {canReportOtherUser && (
+            <button
+              onClick={() =>
+                setReportTarget({ kind: 'user', userId: otherUserId!, username: otherUsername })
+              }
+              className="text-stone-400 hover:text-stone-700 transition-colors p-1 -mr-1"
+              aria-label={`Report ${otherUsername}`}
+            >
+              <FlagIcon className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -562,10 +641,15 @@ function ChatView({
           const username = m.anonymous
             ? 'Anonymous'
             : (m.profiles?.username ?? 'A member of Kith');
+          const canReportMessage =
+            currentUserId != null && m.user_id != null && m.user_id !== currentUserId;
           return (
             <div
               key={m.id}
-              className={fromViewer ? 'flex justify-end' : 'flex justify-start'}
+              className={
+                (fromViewer ? 'flex justify-end' : 'flex justify-start items-center gap-1') +
+                ' group'
+              }
             >
               <div
                 className={
@@ -584,6 +668,15 @@ function ChatView({
                   {username} · {formatTimestamp(m.created_at)}
                 </p>
               </div>
+              {canReportMessage && (
+                <button
+                  onClick={() => setReportTarget({ kind: 'response', id: m.id })}
+                  className="opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1 text-stone-400 hover:text-stone-700"
+                  aria-label="Report this message"
+                >
+                  <FlagIcon className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           );
         })}
@@ -659,6 +752,70 @@ function ChatView({
       ) : waitingOnOther ? (
         <p className="text-xs text-stone-400 italic mt-6 text-center">Waiting for a reply.</p>
       ) : null}
+
+      {reportTarget && (
+        <div
+          className="fixed inset-0 bg-stone-900/40 flex items-center justify-center px-4 z-50"
+          onClick={() => {
+            if (!reportSubmitting) closeReport();
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl px-5 py-5 max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-stone-800 text-base font-medium mb-1">
+              {reportTarget.kind === 'user' ? 'Report user' : 'Report this message'}
+            </p>
+            <p className="text-stone-500 text-sm mb-4">
+              {reportTarget.kind === 'user'
+                ? `You are reporting ${reportTarget.username}.`
+                : "What's the issue?"}
+            </p>
+            {reportSubmitted ? (
+              <p className="text-stone-600 text-sm py-6 text-center">Thanks. We&apos;ll review this.</p>
+            ) : (
+              <>
+                <div className="space-y-2 mb-4">
+                  {REPORT_REASONS.map((reason) => (
+                    <button
+                      key={reason}
+                      onClick={() => setReportReason(reason)}
+                      className={
+                        'w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ' +
+                        (reportReason === reason
+                          ? 'border-stone-400 bg-stone-100 text-stone-800'
+                          : 'border-stone-200 bg-white text-stone-600 hover:border-stone-400 hover:text-stone-800')
+                      }
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={closeReport}
+                    disabled={reportSubmitting}
+                    className="flex-1 border border-stone-300 text-stone-700 py-2 rounded-xl text-sm font-medium hover:border-stone-800 transition-colors disabled:opacity-40"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleReportSubmit}
+                    disabled={!reportReason || reportSubmitting}
+                    className="flex-1 bg-stone-800 text-white py-2 rounded-xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
+                  >
+                    {reportSubmitting ? 'Sending...' : 'Submit report'}
+                  </button>
+                </div>
+                {reportError && (
+                  <p className="text-sm text-red-500 text-center mt-3">{reportError}</p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
