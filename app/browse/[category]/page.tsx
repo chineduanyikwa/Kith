@@ -1,7 +1,22 @@
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import CategoryFeedList from './CategoryFeedList'
 
 const PAGE_SIZE = 10
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ category: string }>
+}): Promise<Metadata> {
+  const { category } = await params
+  const decoded = decodeURIComponent(category).replace(/-/g, ' ')
+  const capitalised = decoded.replace(/\b\w/g, (l) => l.toUpperCase())
+  return {
+    title: `${capitalised} — Kith`,
+    description: `Read what people in the ${decoded} circle are carrying. Show up for someone today.`,
+  }
+}
 
 export default async function CategoryFeed({
   params,

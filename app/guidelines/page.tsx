@@ -1,5 +1,6 @@
 export const metadata = {
   title: 'Community Guidelines — Kith',
+  description: 'How we show up for each other on Kith.',
 };
 
 export default function GuidelinesPage() {
