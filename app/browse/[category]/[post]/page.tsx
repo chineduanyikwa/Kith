@@ -592,7 +592,6 @@ function ChatView({
       return;
     }
     setReportSubmitted(true);
-    setTimeout(closeReport, 1500);
   }
   const otherUsername = viewerIsTalker
     ? (thread.anonymous ? 'Anonymous' : (thread.profiles?.username ?? 'A member of Kith'))
