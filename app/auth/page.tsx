@@ -85,6 +85,7 @@ function AuthForm() {
   const [error, setError] = useState('');
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,6 +150,12 @@ function AuthForm() {
     const trimmedUsername = username.trim();
     if (!trimmedUsername) {
       setError('Please choose a username.');
+      setLoading(false);
+      return;
+    }
+
+    if (!ageConfirmed) {
+      setError('You must be 18 or older to use Kith.');
       setLoading(false);
       return;
     }
@@ -369,6 +376,19 @@ function AuthForm() {
                     </div>
                   )}
                 </div>
+
+                {tab === 'signup' && (
+                  <label className="flex items-start gap-2 text-sm text-stone-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={ageConfirmed}
+                      onChange={(e) => setAgeConfirmed(e.target.checked)}
+                      required
+                      className="mt-0.5 h-4 w-4 rounded border-stone-300 text-stone-800 focus:ring-stone-400"
+                    />
+                    <span>I confirm I am 18 years of age or older.</span>
+                  </label>
+                )}
 
                 {error && <p className="text-sm text-red-500">{error}</p>}
 
