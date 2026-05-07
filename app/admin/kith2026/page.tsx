@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 const PAGE_SIZE = 10;
+const BROWSE_PAGE_SIZE = 20;
 
 type ThreadItem = {
   id: number;
@@ -25,7 +26,37 @@ type Report = {
 
 type TargetFilter = 'all' | 'post' | 'response' | 'user';
 
+type Tab = 'reports' | 'browse';
+type BrowseFilter = 'all' | 'post' | 'response';
+
+type BrowsePostItem = {
+  kind: 'post';
+  id: number;
+  content: string;
+  category: string;
+  username: string | null;
+  created_at: string;
+};
+
+type BrowseResponseItem = {
+  kind: 'response';
+  id: number;
+  content: string;
+  post_id: number;
+  post_category: string;
+  post_preview: string;
+  username: string | null;
+  created_at: string;
+};
+
+type BrowseItem = BrowsePostItem | BrowseResponseItem;
+
+function formatCategory(slug: string) {
+  return slug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
 export default function AdminPage() {
+  const [tab, setTab] = useState<Tab>('reports');
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -34,6 +65,12 @@ export default function AdminPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [threadCache, setThreadCache] = useState<Record<number, ThreadItem[]>>({});
   const [threadLoadingId, setThreadLoadingId] = useState<number | null>(null);
+
+  const [browseItems, setBrowseItems] = useState<BrowseItem[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(false);
+  const [browseLoadingMore, setBrowseLoadingMore] = useState(false);
+  const [browseHasMore, setBrowseHasMore] = useState(false);
+  const [browseFilter, setBrowseFilter] = useState<BrowseFilter>('all');
 
   async function fetchPage(from: number, currentFilter: TargetFilter) {
     let query = supabase
@@ -90,6 +127,133 @@ export default function AdminPage() {
     loadInitial(filter);
   }, [filter]);
 
+  async function fetchBrowsePage(cursor: string | null, currentFilter: BrowseFilter) {
+    const wantPosts = currentFilter !== 'response';
+    const wantResponses = currentFilter !== 'post';
+
+    type PostRow = {
+      id: number;
+      content: string;
+      category: string;
+      anonymous: boolean;
+      created_at: string;
+      profiles: { username: string | null } | { username: string | null }[] | null;
+    };
+    type ResponseRow = {
+      id: number;
+      content: string;
+      post_id: number;
+      anonymous: boolean;
+      created_at: string;
+      profiles: { username: string | null } | { username: string | null }[] | null;
+    };
+
+    const postsPromise: Promise<PostRow[]> = wantPosts
+      ? (async () => {
+          let q = supabase
+            .from('posts')
+            .select('id, content, category, anonymous, created_at, profiles!posts_user_id_profiles_fkey(username)')
+            .order('created_at', { ascending: false })
+            .limit(BROWSE_PAGE_SIZE);
+          if (cursor) q = q.lt('created_at', cursor);
+          const { data } = await q;
+          return (data ?? []) as PostRow[];
+        })()
+      : Promise.resolve([]);
+
+    const responsesPromise: Promise<ResponseRow[]> = wantResponses
+      ? (async () => {
+          let q = supabase
+            .from('responses')
+            .select('id, content, post_id, anonymous, created_at, profiles!responses_user_id_profiles_fkey(username)')
+            .order('created_at', { ascending: false })
+            .limit(BROWSE_PAGE_SIZE);
+          if (cursor) q = q.lt('created_at', cursor);
+          const { data } = await q;
+          return (data ?? []) as ResponseRow[];
+        })()
+      : Promise.resolve([]);
+
+    const [posts, responses] = await Promise.all([postsPromise, responsesPromise]);
+
+    const respPostIds = Array.from(new Set(responses.map((r) => r.post_id)));
+    const postLookup = new Map<number, { category: string; content: string }>();
+    if (respPostIds.length) {
+      const { data: refPosts } = await supabase
+        .from('posts')
+        .select('id, category, content')
+        .in('id', respPostIds);
+      for (const p of refPosts ?? []) {
+        postLookup.set(p.id, { category: p.category, content: p.content });
+      }
+    }
+
+    const usernameOf = (
+      anonymous: boolean,
+      profiles: { username: string | null } | { username: string | null }[] | null,
+    ): string | null => {
+      if (anonymous) return null;
+      const profile = Array.isArray(profiles) ? profiles[0] : profiles;
+      return profile?.username ?? null;
+    };
+
+    const merged: BrowseItem[] = [
+      ...posts.map<BrowsePostItem>((p) => ({
+        kind: 'post',
+        id: p.id,
+        content: p.content,
+        category: p.category,
+        username: usernameOf(p.anonymous, p.profiles),
+        created_at: p.created_at,
+      })),
+      ...responses.map<BrowseResponseItem>((r) => {
+        const ref = postLookup.get(r.post_id);
+        return {
+          kind: 'response',
+          id: r.id,
+          content: r.content,
+          post_id: r.post_id,
+          post_category: ref?.category ?? '',
+          post_preview: ref?.content ?? '[post not found]',
+          username: usernameOf(r.anonymous, r.profiles),
+          created_at: r.created_at,
+        };
+      }),
+    ];
+
+    merged.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+
+    const sliced = merged.slice(0, BROWSE_PAGE_SIZE);
+    const exhausted =
+      (wantPosts ? posts.length < BROWSE_PAGE_SIZE : true) &&
+      (wantResponses ? responses.length < BROWSE_PAGE_SIZE : true);
+    return { items: sliced, exhausted };
+  }
+
+  async function loadBrowseInitial(currentFilter: BrowseFilter) {
+    setBrowseLoading(true);
+    const { items, exhausted } = await fetchBrowsePage(null, currentFilter);
+    setBrowseItems(items);
+    setBrowseHasMore(items.length === BROWSE_PAGE_SIZE && !exhausted);
+    setBrowseLoading(false);
+  }
+
+  async function loadBrowseMore() {
+    if (browseItems.length === 0) return;
+    setBrowseLoadingMore(true);
+    const cursor = browseItems[browseItems.length - 1].created_at;
+    const { items, exhausted } = await fetchBrowsePage(cursor, browseFilter);
+    setBrowseItems((prev) => [...prev, ...items]);
+    if (items.length < BROWSE_PAGE_SIZE || exhausted) setBrowseHasMore(false);
+    setBrowseLoadingMore(false);
+  }
+
+  useEffect(() => {
+    if (tab === 'browse') {
+      loadBrowseInitial(browseFilter);
+    }
+  }, [tab, browseFilter]);
+
   async function loadThread(report: Report) {
     if (report.target_type !== 'response' || report.target_id == null) return;
     if (threadCache[report.id]) {
@@ -142,7 +306,18 @@ export default function AdminPage() {
     { value: 'user', label: 'Users' },
   ];
 
-  if (loading) {
+  const BROWSE_FILTER_OPTIONS: { value: BrowseFilter; label: string }[] = [
+    { value: 'all', label: 'Posts & responses' },
+    { value: 'post', label: 'Posts only' },
+    { value: 'response', label: 'Responses only' },
+  ];
+
+  const TABS: { value: Tab; label: string }[] = [
+    { value: 'reports', label: 'Reports' },
+    { value: 'browse', label: 'Browse all content' },
+  ];
+
+  if (tab === 'reports' && loading) {
     return (
       <main className="min-h-screen bg-stone-50 px-4 py-8">
         <div className="max-w-2xl mx-auto">
@@ -155,7 +330,144 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-stone-50 px-4 py-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-stone-800 text-xl font-medium mb-1">Moderation</h1>
+        <h1 className="text-stone-800 text-xl font-medium mb-4">Moderation</h1>
+
+        <div className="flex border-b border-stone-200 mb-6">
+          {TABS.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => setTab(t.value)}
+              className={`text-sm px-4 py-2 -mb-px border-b-2 transition-colors ${
+                tab === t.value
+                  ? 'border-stone-800 text-stone-800'
+                  : 'border-transparent text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'browse' ? (
+          <>
+            <p className="text-stone-500 text-sm mb-4">
+              {browseLoading
+                ? 'Loading…'
+                : browseItems.length === 0
+                ? 'No content yet.'
+                : 'Newest first.'}
+            </p>
+
+            <div className="flex flex-wrap gap-2 mb-8">
+              {BROWSE_FILTER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setBrowseFilter(opt.value)}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    browseFilter === opt.value
+                      ? 'bg-stone-800 text-white border-stone-800'
+                      : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {browseLoading ? null : browseItems.length === 0 ? (
+              <div className="text-center py-20">
+                <p className="text-stone-400 text-sm">Nothing here yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {browseItems.map((item) => {
+                  const key = `${item.kind}-${item.id}`;
+                  if (item.kind === 'post') {
+                    const href = `/browse/${item.category}/${item.id}`;
+                    return (
+                      <div key={key} className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-medium bg-stone-100 text-stone-500 px-2 py-1 rounded-full">
+                            post · {formatCategory(item.category)}
+                          </span>
+                          <span className="text-xs text-stone-400">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-stone-700 text-sm leading-relaxed mb-2 line-clamp-3">
+                          {item.content}
+                        </p>
+                        <p className="text-xs text-stone-400 mb-3">
+                          {item.username ? '@' + item.username : 'Anonymous'}
+                        </p>
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block text-xs text-stone-600 underline hover:text-stone-800"
+                        >
+                          View on site →
+                        </a>
+                      </div>
+                    );
+                  }
+                  const postHref = item.post_category
+                    ? `/browse/${item.post_category}/${item.post_id}`
+                    : null;
+                  return (
+                    <div key={key} className="bg-white shadow-card rounded-xl bg-card px-5 py-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-medium bg-stone-100 text-stone-500 px-2 py-1 rounded-full">
+                          response
+                        </span>
+                        <span className="text-xs text-stone-400">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-stone-700 text-sm leading-relaxed mb-2 line-clamp-3">
+                        {item.content}
+                      </p>
+                      <p className="text-xs text-stone-400 mb-3">
+                        {item.username ? '@' + item.username : 'Anonymous'}
+                      </p>
+                      <div className="border-l-2 border-stone-200 pl-3 mb-3">
+                        <p className="text-[10px] uppercase tracking-wide text-stone-400 mb-1">
+                          on post{item.post_category ? ' · ' + formatCategory(item.post_category) : ''}
+                        </p>
+                        <p className="text-xs text-stone-600 leading-relaxed line-clamp-2">
+                          {item.post_preview}
+                        </p>
+                      </div>
+                      {postHref && (
+                        <a
+                          href={postHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block text-xs text-stone-600 underline hover:text-stone-800"
+                        >
+                          View on site →
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {browseHasMore && (
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={loadBrowseMore}
+                  disabled={browseLoadingMore}
+                  className="text-sm text-stone-600 border border-stone-200 bg-white px-5 py-2 rounded-xl hover:bg-stone-50 transition-colors disabled:opacity-50"
+                >
+                  {browseLoadingMore ? 'Loading…' : 'Load more'}
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
         <p className="text-stone-500 text-sm mb-4">
           {reports.length === 0 ? 'No open reports.' : String(reports.length) + ' open report' + (reports.length === 1 ? '' : 's')}
         </p>
@@ -284,6 +596,8 @@ export default function AdminPage() {
               {loadingMore ? 'Loading…' : 'Load more'}
             </button>
           </div>
+        )}
+          </>
         )}
       </div>
     </main>
