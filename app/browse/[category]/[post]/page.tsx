@@ -157,6 +157,8 @@ export default function PostPage({
   const [resolving, setResolving] = useState(false);
   const [helpedState, setHelpedState] = useState<Record<number, 'confirm' | 'gone'>>({});
 
+  const [showHelperSupport, setShowHelperSupport] = useState(false);
+
   const [selectedThreadId, setSelectedThreadId] = useState<number | null>(() => {
     const t = searchParams.get('thread');
     const n = t ? parseInt(t, 10) : NaN;
@@ -556,7 +558,46 @@ export default function PostPage({
                 Respond to this
               </a>
             )}
+
+            {currentUserId && currentUserId !== post.user_id && (
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => setShowHelperSupport(true)}
+                  className="text-xs text-stone-400 hover:text-stone-600 transition-colors underline-offset-2 hover:underline"
+                >
+                  This post is affecting me
+                </button>
+              </div>
+            )}
           </>
+        )}
+
+        {showHelperSupport && (
+          <div
+            className="fixed inset-0 bg-stone-900/40 flex items-center justify-center px-4 z-50"
+            onClick={() => setShowHelperSupport(false)}
+          >
+            <div
+              className="bg-white rounded-2xl px-5 py-5 max-w-sm w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-stone-800 text-base font-medium mb-3">
+                It&apos;s okay to step back.
+              </p>
+              <p className="text-stone-600 text-sm leading-relaxed mb-3">
+                Showing up for others is meaningful work, but it can bring up things of your own. You don&apos;t have to respond to every post. If this one is too close, it&apos;s okay to leave. If you need support yourself, Kith is here for that too — you can share what you&apos;re carrying in any category.
+              </p>
+              <p className="text-stone-600 text-sm leading-relaxed mb-5">
+                If you are in crisis or need immediate help, please contact a professional or call the MANI helpline: {MANI_NUMBER}.
+              </p>
+              <button
+                onClick={() => setShowHelperSupport(false)}
+                className="w-full bg-stone-800 text-white py-2 rounded-xl text-sm font-medium hover:bg-stone-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         )}
         <p className="text-xs text-stone-400 text-center pt-12">
           Kith is a peer support community, not a substitute for professional help.
