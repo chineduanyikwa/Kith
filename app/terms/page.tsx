@@ -24,10 +24,11 @@ export default function TermsPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-stone-800">Who can use Kith</h2>
+          <h2 className="text-lg font-semibold text-stone-800">Eligibility</h2>
           <p>
-            You must be 18 or older to use Kith. By signing up, you&apos;re
-            confirming that you are.
+            You must be at least 18 years old to use Kith. By creating an
+            account, you confirm that you meet this requirement. If you are
+            under 18, you may not use this platform.
           </p>
         </section>
 
