@@ -30,6 +30,17 @@ type ParentResponse = {
   profiles?: { username: string } | null
 }
 
+async function blockExistsBetween(a: string, b: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('blocks')
+    .select('id')
+    .or(
+      `and(blocker_id.eq.${a},blocked_id.eq.${b}),and(blocker_id.eq.${b},blocked_id.eq.${a})`,
+    )
+    .limit(1)
+  return (data?.length ?? 0) > 0
+}
+
 async function isReplyAllowed(
   parentId: number,
   postAuthorId: string | null | undefined,
@@ -150,6 +161,19 @@ function RespondForm() {
         localStorage.removeItem('kith_pending_response')
         const saved = JSON.parse(pending)
         setAutoSubmitting(true)
+        const { data: postRow } = await supabase
+          .from('posts')
+          .select('user_id')
+          .eq('id', parseInt(saved.postId))
+          .single()
+        if (postRow?.user_id && postRow.user_id !== currentUser.id) {
+          const blocked = await blockExistsBetween(currentUser.id, postRow.user_id)
+          if (blocked) {
+            setAutoSubmitting(false)
+            setError('Something went wrong. Please try again.')
+            return
+          }
+        }
         const insert: Record<string, unknown> = {
           content: saved.content,
           post_id: parseInt(saved.postId),
@@ -264,6 +288,15 @@ function RespondForm() {
       setLoading(false)
       setRateLimitError("You've been showing up a lot today. Rest a little and come back.")
       return
+    }
+
+    if (post?.user_id && post.user_id !== currentUser.id) {
+      const blocked = await blockExistsBetween(currentUser.id, post.user_id)
+      if (blocked) {
+        setLoading(false)
+        setError('Something went wrong. Please try again.')
+        return
+      }
     }
 
     const insert: Record<string, unknown> = {

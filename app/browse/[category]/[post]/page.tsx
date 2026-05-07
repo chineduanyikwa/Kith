@@ -44,6 +44,21 @@ function FlagIcon({ className = '' }: { className?: string }) {
   );
 }
 
+function MoreIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="5" cy="12" r="1.6" />
+      <circle cx="12" cy="12" r="1.6" />
+      <circle cx="19" cy="12" r="1.6" />
+    </svg>
+  );
+}
+
 type Post = {
   id: number;
   content: string;
@@ -98,6 +113,17 @@ function formatTimestamp(iso: string) {
 
 function flattenThread(node: ResponseNode): ResponseNode[] {
   return [node, ...node.children.flatMap(flattenThread)];
+}
+
+async function blockExistsBetween(a: string, b: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('blocks')
+    .select('id')
+    .or(
+      `and(blocker_id.eq.${a},blocked_id.eq.${b}),and(blocker_id.eq.${b},blocked_id.eq.${a})`,
+    )
+    .limit(1);
+  return (data?.length ?? 0) > 0;
 }
 
 export default function PostPage({
@@ -368,6 +394,15 @@ export default function PostPage({
       return;
     }
 
+    if (post?.user_id && post.user_id !== user.id) {
+      const blocked = await blockExistsBetween(user.id, post.user_id);
+      if (blocked) {
+        setReplying(false);
+        setReplyError('Something went wrong. Please try again.');
+        return;
+      }
+    }
+
     const { error } = await supabase.from('responses').insert({
       content: trimmed,
       post_id: parseInt(postId),
@@ -571,6 +606,28 @@ function ChatView({
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [reportError, setReportError] = useState('');
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [blockSubmitting, setBlockSubmitting] = useState(false);
+  const [blockConfirmed, setBlockConfirmed] = useState(false);
+  const [blockError, setBlockError] = useState('');
+
+  async function handleBlockUser(userId: string) {
+    if (blockSubmitting || !currentUserId) return;
+    setHeaderMenuOpen(false);
+    setBlockError('');
+    setBlockSubmitting(true);
+    const { error } = await supabase.from('blocks').insert({
+      blocker_id: currentUserId,
+      blocked_id: userId,
+    });
+    setBlockSubmitting(false);
+    if (error && !/duplicate key|unique/i.test(error.message)) {
+      console.error(error);
+      setBlockError('Could not block this user right now. Please try again in a moment.');
+      return;
+    }
+    setBlockConfirmed(true);
+  }
 
   function closeReport() {
     setReportTarget(null);
@@ -624,15 +681,49 @@ function ChatView({
         <div className="flex items-center justify-between gap-3">
           <p className="text-base font-medium text-stone-700">{otherUsername}</p>
           {canReportOtherUser && (
-            <button
-              onClick={() =>
-                setReportTarget({ kind: 'user', userId: otherUserId!, username: otherUsername })
-              }
-              className="text-stone-400 hover:text-stone-700 transition-colors p-1 -mr-1"
-              aria-label={`Report ${otherUsername}`}
-            >
-              <FlagIcon className="w-4 h-4" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setHeaderMenuOpen((v) => !v)}
+                className="text-stone-400 hover:text-stone-700 transition-colors p-1 -mr-1"
+                aria-label={`More options for ${otherUsername}`}
+                aria-haspopup="menu"
+                aria-expanded={headerMenuOpen}
+              >
+                <MoreIcon className="w-4 h-4" />
+              </button>
+              {headerMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setHeaderMenuOpen(false)}
+                    aria-hidden="true"
+                  />
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full mt-1 z-50 w-44 bg-white shadow-card rounded-xl py-1 border border-stone-100"
+                  >
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setHeaderMenuOpen(false);
+                        setReportTarget({ kind: 'user', userId: otherUserId!, username: otherUsername });
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50"
+                    >
+                      Report user
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => handleBlockUser(otherUserId!)}
+                      disabled={blockSubmitting}
+                      className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 disabled:opacity-40"
+                    >
+                      {blockSubmitting ? 'Blocking…' : 'Block user'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -754,6 +845,36 @@ function ChatView({
       ) : waitingOnOther ? (
         <p className="text-xs text-stone-400 italic mt-6 text-center">Waiting for a reply.</p>
       ) : null}
+
+      {(blockConfirmed || blockError) && (
+        <div
+          className="fixed inset-0 bg-stone-900/40 flex items-center justify-center px-4 z-50"
+          onClick={() => {
+            if (!blockSubmitting) {
+              setBlockConfirmed(false);
+              setBlockError('');
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl px-5 py-5 max-w-sm w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-stone-600 text-sm py-6 text-center">
+              {blockError ? blockError : 'This user has been blocked.'}
+            </p>
+            <button
+              onClick={() => {
+                setBlockConfirmed(false);
+                setBlockError('');
+              }}
+              className="w-full bg-stone-800 text-white py-2 rounded-xl text-sm font-medium hover:bg-stone-700 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {reportTarget && (
         <div
