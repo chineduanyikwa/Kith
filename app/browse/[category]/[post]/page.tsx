@@ -79,6 +79,7 @@ type ResponseRow = {
   user_id: string | null;
   anonymous: boolean;
   created_at: string;
+  edited_at: string | null;
   profiles?: { username: string } | null;
 };
 
@@ -299,6 +300,18 @@ export default function PostPage({
           setRefreshKey((k) => k + 1);
         },
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'responses',
+          filter: `post_id=eq.${postId}`,
+        },
+        () => {
+          setRefreshKey((k) => k + 1);
+        },
+      )
       .subscribe();
 
     const postChannel = supabase
@@ -428,6 +441,23 @@ export default function PostPage({
     setRefreshKey((k) => k + 1);
   }
 
+  function applyMessageEdit(
+    id: number,
+    content: string,
+    editedAt: string,
+  ) {
+    const patchTree = (nodes: ResponseNode[]): ResponseNode[] =>
+      nodes.map((n) =>
+        n.id === id
+          ? { ...n, content, edited_at: editedAt }
+          : { ...n, children: patchTree(n.children) },
+      );
+    setTree((prev) => patchTree(prev));
+    setAllResponses((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, content, edited_at: editedAt } : r)),
+    );
+  }
+
   function setThreadInUrl(id: number | null) {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -470,6 +500,7 @@ export default function PostPage({
             showReplyCrisis={showReplyCrisis}
             setShowReplyCrisis={setShowReplyCrisis}
             onReply={handleReply}
+            onMessageEdited={applyMessageEdit}
           />
         ) : (
           <>
@@ -622,6 +653,7 @@ function ChatView({
   showReplyCrisis,
   setShowReplyCrisis,
   onReply,
+  onMessageEdited,
 }: {
   post: Post;
   thread: ResponseNode;
@@ -637,6 +669,7 @@ function ChatView({
   showReplyCrisis: boolean;
   setShowReplyCrisis: (v: boolean) => void;
   onReply: (skipCrisisCheck?: boolean) => void | Promise<void>;
+  onMessageEdited: (id: number, content: string, editedAt: string) => void;
 }) {
   const messages = flattenThread(thread);
   const last = messages[messages.length - 1];
@@ -646,6 +679,45 @@ function ChatView({
 
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [reportReason, setReportReason] = useState('');
+
+  const EDIT_WINDOW_MS = 5 * 60 * 1000;
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  const isWithinEditWindow = (createdAt: string) =>
+    now - new Date(createdAt).getTime() < EDIT_WINDOW_MS;
+
+  async function saveEdit(m: ResponseNode) {
+    const next = editDraft.trim();
+    if (!next || next === m.content) return;
+    if (!isWithinEditWindow(m.created_at)) {
+      setEditError('Edit window has expired.');
+      return;
+    }
+    setEditSaving(true);
+    setEditError('');
+    const editedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from('responses')
+      .update({ content: next, edited_at: editedAt })
+      .eq('id', m.id);
+    setEditSaving(false);
+    if (error) {
+      setEditError('Could not save. Try again.');
+      return;
+    }
+    onMessageEdited(m.id, next, editedAt);
+    setEditingId(null);
+    setEditDraft('');
+  }
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
   const [reportError, setReportError] = useState('');
@@ -828,39 +900,118 @@ function ChatView({
             : (m.profiles?.username ?? 'Anonymous');
           const canReportMessage =
             currentUserId != null && m.user_id != null && m.user_id !== currentUserId;
+          const canEdit = fromViewer && isWithinEditWindow(m.created_at);
+          const isEditing = editingId === m.id;
+          const startEditing = () => {
+            setEditingId(m.id);
+            setEditDraft(m.content);
+            setEditError('');
+          };
+          const cancelEditing = () => {
+            setEditingId(null);
+            setEditDraft('');
+            setEditError('');
+          };
           return (
-            <div
-              key={m.id}
-              className={
-                (fromViewer ? 'flex justify-end' : 'flex justify-start items-center gap-1') +
-                ' group'
-              }
-            >
+            <div key={m.id} className="flex flex-col">
               <div
                 className={
-                  'max-w-[80%] px-4 py-3 ' +
-                  (fromViewer
-                    ? 'bg-stone-800 text-white rounded-2xl rounded-br-md'
-                    : 'bg-white shadow-card rounded-2xl rounded-bl-md text-stone-700')
+                  (fromViewer ? 'flex justify-end' : 'flex justify-start items-center gap-1') +
+                  ' group'
                 }
               >
-                <p className="text-base leading-relaxed whitespace-pre-wrap">{m.content}</p>
-                <p
+                <div
                   className={
-                    'text-xs mt-1 ' + (fromViewer ? 'text-stone-300' : 'text-stone-400')
+                    'max-w-[80%] px-4 py-3 ' +
+                    (fromViewer
+                      ? 'bg-stone-800 text-white rounded-2xl rounded-br-md'
+                      : 'bg-white shadow-card rounded-2xl rounded-bl-md text-stone-700')
                   }
                 >
-                  {username} · {formatTimestamp(m.created_at)}
-                </p>
+                  {isEditing ? (
+                    <div className="flex flex-col gap-2 min-w-[16rem]">
+                      <textarea
+                        value={editDraft}
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        rows={3}
+                        autoFocus
+                        className="w-full bg-transparent text-base leading-relaxed resize-none outline-none border border-stone-500 rounded p-2"
+                      />
+                      {editError && (
+                        <p className="text-xs text-red-300">{editError}</p>
+                      )}
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={cancelEditing}
+                          disabled={editSaving}
+                          className="text-xs px-3 py-1 rounded bg-stone-600 hover:bg-stone-500 text-white disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => saveEdit(m)}
+                          disabled={
+                            editSaving ||
+                            editDraft.trim() === '' ||
+                            editDraft === m.content
+                          }
+                          className="text-xs px-3 py-1 rounded bg-white text-stone-800 hover:bg-stone-100 disabled:opacity-50"
+                        >
+                          {editSaving ? 'Saving…' : 'Save'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-base leading-relaxed whitespace-pre-wrap">
+                        {m.content}
+                      </p>
+                      <p
+                        className={
+                          'text-xs mt-1 ' +
+                          (fromViewer ? 'text-stone-300' : 'text-stone-400')
+                        }
+                      >
+                        {username} · {formatTimestamp(m.created_at)}
+                      </p>
+                    </>
+                  )}
+                </div>
+                {canEdit && !isEditing && (
+                  <button
+                    onClick={startEditing}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      startEditing();
+                    }}
+                    className={
+                      'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1 text-xs text-stone-400 hover:text-stone-700 ' +
+                      (fromViewer ? 'order-first' : '')
+                    }
+                    aria-label="Edit this message"
+                  >
+                    Edit
+                  </button>
+                )}
+                {canReportMessage && (
+                  <button
+                    onClick={() => setReportTarget({ kind: 'response', id: m.id })}
+                    className="opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1 text-stone-400 hover:text-stone-700"
+                    aria-label="Report this message"
+                  >
+                    <FlagIcon className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
-              {canReportMessage && (
-                <button
-                  onClick={() => setReportTarget({ kind: 'response', id: m.id })}
-                  className="opacity-40 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1 text-stone-400 hover:text-stone-700"
-                  aria-label="Report this message"
+              {!isEditing && m.edited_at && (
+                <p
+                  className={
+                    'text-xs text-stone-400 mt-0.5 ' +
+                    (fromViewer ? 'text-right pr-2' : 'pl-2')
+                  }
                 >
-                  <FlagIcon className="w-3.5 h-3.5" />
-                </button>
+                  edited
+                </p>
               )}
             </div>
           );
