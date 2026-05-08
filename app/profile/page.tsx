@@ -71,6 +71,14 @@ export default function ProfilePage() {
   >(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [authProvider, setAuthProvider] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -81,6 +89,8 @@ export default function ProfilePage() {
       }
       const me = currentUser.id;
       setUserId(me);
+      setUserEmail(currentUser.email ?? null);
+      setAuthProvider(currentUser.app_metadata?.provider ?? null);
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -301,6 +311,46 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleChangePassword() {
+    if (!userEmail) return;
+    setPasswordError('');
+    setPasswordSuccess(false);
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters.');
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: userEmail,
+        password: currentPassword,
+      });
+      if (signInError) {
+        setPasswordError('Current password is incorrect.');
+        return;
+      }
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (updateError) {
+        setPasswordError('Could not update your password right now. Please try again in a moment.');
+        return;
+      }
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordSuccess(true);
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
   async function handleDeletePost(postId: number) {
     if (!userId) return;
     if (!window.confirm('Delete this post? This cannot be undone.')) return;
@@ -433,6 +483,59 @@ export default function ProfilePage() {
             <p className="text-xs text-green-600 mt-1">Username updated.</p>
           )}
         </div>
+
+        {authProvider !== 'google' && (
+          <div className="mb-8">
+            <h2 className="text-sm font-medium text-stone-500 mb-3">Change password</h2>
+            <div className="space-y-2">
+              <input
+                type="password"
+                placeholder="Current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                disabled={savingPassword}
+                className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-stone-700 text-sm focus:outline-none focus:border-stone-400 disabled:opacity-50"
+              />
+              <input
+                type="password"
+                placeholder="New password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={savingPassword}
+                className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-stone-700 text-sm focus:outline-none focus:border-stone-400 disabled:opacity-50"
+              />
+              <input
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={savingPassword}
+                className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-stone-700 text-sm focus:outline-none focus:border-stone-400 disabled:opacity-50"
+              />
+            </div>
+            {passwordError && (
+              <p className="text-xs text-red-500 mt-2">{passwordError}</p>
+            )}
+            {passwordSuccess && (
+              <p className="text-xs text-green-600 mt-2">Password updated successfully.</p>
+            )}
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={handleChangePassword}
+                disabled={
+                  savingPassword ||
+                  currentPassword.length === 0 ||
+                  newPassword.length === 0 ||
+                  confirmPassword.length === 0
+                }
+                className="bg-stone-800 text-white py-1.5 px-3 rounded-xl text-xs font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
+              >
+                {savingPassword ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        )}
 
         <h2 className="text-sm font-medium text-stone-500 mb-3 mt-8">Your posts</h2>
 
