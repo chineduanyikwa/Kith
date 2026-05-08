@@ -12,7 +12,6 @@ const USERNAME_POOL = [
   'wildbird', 'sunfield', 'darkmoss', 'whitepine', 'graycedar',
   'silentbrook', 'autumnlight', 'evergreenpath', 'mossymeadow', 'driftwood',
 ];
-const SUGGESTION_COUNT = 5;
 const TAKEN_USERNAME_MESSAGE = 'That username is already taken. Please choose a different one.';
 
 function shuffled<T>(arr: readonly T[]): T[] {
@@ -28,41 +27,48 @@ function randomSuffix() {
   return Math.random().toString(36).slice(2, 6);
 }
 
-async function fetchAvailableSuggestions(count: number): Promise<string[]> {
-  const available: string[] = [];
-  let candidates = shuffled(USERNAME_POOL);
+async function fetchAvailableSuggestions(): Promise<string[]> {
+  // Always returns 2 plain names + 1 with underscore suffix.
+  const result: string[] = [];
+  const plainCandidates = shuffled(USERNAME_POOL);
 
-  for (let round = 0; round < 5 && available.length < count; round++) {
-    if (candidates.length === 0) {
-      candidates = shuffled(USERNAME_POOL)
-        .slice(0, count * 2)
-        .map((n) => `${n}_${randomSuffix()}`);
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('username')
+    .in('username', plainCandidates);
+  // Fail closed: if availability check errors, don't surface candidates we
+  // can't verify — taken usernames would otherwise leak through.
+  if (error) {
+    console.warn('username availability check failed', error);
+    return [];
+  }
+  const taken = new Set((data ?? []).map((r: { username: string }) => r.username));
+  for (const c of plainCandidates) {
+    if (!taken.has(c)) {
+      result.push(c);
+      if (result.length >= 2) break;
     }
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('username')
-      .in('username', candidates);
-
-    // Fail closed: if the availability check errors (e.g. invalid anon key,
-    // RLS regression, network failure), do not show any candidates we
-    // can't verify — otherwise taken usernames leak through.
-    if (error) {
-      console.warn('username availability check failed', error);
-      return available.slice(0, count);
-    }
-
-    const taken = new Set((data ?? []).map((r: { username: string }) => r.username));
-    for (const c of candidates) {
-      if (!taken.has(c) && !available.includes(c)) {
-        available.push(c);
-        if (available.length >= count) break;
-      }
-    }
-    candidates = [];
   }
 
-  return available.slice(0, count);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const base = USERNAME_POOL[Math.floor(Math.random() * USERNAME_POOL.length)];
+    const candidate = `${base}_${randomSuffix()}`;
+    const { data: row, error: rowErr } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('username', candidate)
+      .maybeSingle();
+    if (rowErr) {
+      console.warn('username availability check failed', rowErr);
+      break;
+    }
+    if (!row) {
+      result.push(candidate);
+      break;
+    }
+  }
+
+  return result;
 }
 
 function isUniqueViolation(err: { code?: string; message?: string } | null | undefined) {
@@ -90,7 +96,7 @@ function AuthForm() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const names = await fetchAvailableSuggestions(SUGGESTION_COUNT);
+      const names = await fetchAvailableSuggestions();
       if (!cancelled) setSuggestions(names);
     })();
     return () => {
@@ -139,7 +145,7 @@ function AuthForm() {
   }, [next, router]);
 
   async function refreshSuggestions() {
-    const names = await fetchAvailableSuggestions(SUGGESTION_COUNT);
+    const names = await fetchAvailableSuggestions();
     setSuggestions(names);
   }
 
@@ -345,13 +351,16 @@ function AuthForm() {
                 {tab === 'signup' && (
                   <div>
                     <label className="text-sm font-medium text-stone-600 block mb-1">Username</label>
-                    <input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Choose a username"
-                      className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-stone-700 text-sm focus:outline-none focus:border-stone-400"
-                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-stone-500">@</span>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Choose a username"
+                        className="flex-1 bg-white border border-stone-200 rounded-xl px-4 py-3 text-stone-700 text-sm focus:outline-none focus:border-stone-400"
+                      />
+                    </div>
                     {suggestions.length > 0 && (
                       <p className="text-xs text-stone-400 mt-3 mb-1.5">Suggestions</p>
                     )}
