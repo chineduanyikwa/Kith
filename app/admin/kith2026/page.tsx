@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { formatWAT } from '@/lib/time';
 
 const PAGE_SIZE = 10;
 const BROWSE_PAGE_SIZE = 20;
@@ -462,7 +463,7 @@ export default function AdminPage() {
                             post · {formatCategory(item.category)}
                           </span>
                           <span className="text-xs text-stone-400">
-                            {new Date(item.created_at).toLocaleDateString()}
+                            {formatWAT(item.created_at)}
                           </span>
                         </div>
                         <p className="text-stone-700 text-sm leading-relaxed mb-2 line-clamp-3">
@@ -492,7 +493,7 @@ export default function AdminPage() {
                           response
                         </span>
                         <span className="text-xs text-stone-400">
-                          {new Date(item.created_at).toLocaleDateString()}
+                          {formatWAT(item.created_at)}
                         </span>
                       </div>
                       <p className="text-stone-700 text-sm leading-relaxed mb-2 line-clamp-3">
@@ -585,7 +586,7 @@ export default function AdminPage() {
                     )}
                   </div>
                   <span className="text-xs text-stone-400">
-                    {new Date(report.created_at).toLocaleDateString()}
+                    {formatWAT(report.created_at)}
                   </span>
                 </div>
 
@@ -602,7 +603,7 @@ export default function AdminPage() {
                       ) : report.suspended_until &&
                         new Date(report.suspended_until) > new Date() ? (
                         <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                          Suspended until {new Date(report.suspended_until).toLocaleDateString()}
+                          Suspended until {formatWAT(report.suspended_until)}
                         </span>
                       ) : null}
                     </div>

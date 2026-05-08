@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { formatWAT } from '@/lib/time'
 
 const PAGE_SIZE = 10
 
@@ -83,7 +84,7 @@ export default function CategoryFeedList({
             <p className="text-stone-700 text-sm leading-relaxed">{post.content}</p>
             <div className="flex items-center gap-4 mt-3">
               <span className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'Anonymous')}</span>
-              <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
+              <span className="text-xs text-stone-400">{formatWAT(post.created_at)}</span>
             </div>
           </a>
         ))}
