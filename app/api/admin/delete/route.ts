@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authorizeAdmin } from '@/lib/admin-route';
 
 export async function POST(request: NextRequest) {
@@ -29,6 +30,11 @@ export async function POST(request: NextRequest) {
     .delete()
     .eq('id', targetId);
   if (deleteError) {
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/admin/delete', op: 'delete', table });
+      scope.setContext('supabase', { targetId });
+      Sentry.captureException(deleteError);
+    });
     return NextResponse.json({ error: 'Delete failed.' }, { status: 500 });
   }
 
@@ -38,6 +44,11 @@ export async function POST(request: NextRequest) {
     .eq('target_type', targetType)
     .eq('target_id', targetId);
   if (reportError) {
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/admin/delete', op: 'update', table: 'reports' });
+      scope.setContext('supabase', { targetType, targetId });
+      Sentry.captureException(reportError);
+    });
     return NextResponse.json({ error: 'Report update failed.' }, { status: 500 });
   }
 

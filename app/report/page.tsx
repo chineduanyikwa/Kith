@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 
 const REPORT_REASONS = [
@@ -40,6 +41,11 @@ function ReportForm() {
     setSubmitting(false);
     if (dbError) {
       console.error(dbError);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'report', op: 'insert', table: 'reports', target_type });
+        scope.setContext('supabase', { target_id });
+        Sentry.captureException(dbError);
+      });
       setError('Could not send your report right now. Please try again in a moment.');
       return;
     }

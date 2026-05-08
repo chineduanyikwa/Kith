@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 
 const USERNAME_FORMAT = /^[a-z0-9_]{3,20}$/;
@@ -91,6 +92,10 @@ function ChooseUsernameForm() {
           .maybeSingle();
         if (checkError) {
           console.warn('username availability check failed', checkError);
+          Sentry.withScope((scope) => {
+            scope.setTags({ page: 'auth-username', op: 'select', table: 'profiles' });
+            Sentry.captureException(checkError);
+          });
           setError('Could not check that username right now. Please try again in a moment.');
           return;
         }
@@ -118,6 +123,10 @@ function ChooseUsernameForm() {
         ) {
           setError(USERNAME_TAKEN_MESSAGE);
         } else {
+          Sentry.withScope((scope) => {
+            scope.setTags({ page: 'auth-username', op: 'update', table: 'profiles' });
+            Sentry.captureException(updateError);
+          });
           setError('Could not save your username right now. Please try again in a moment.');
         }
         return;

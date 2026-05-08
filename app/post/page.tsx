@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis';
 import { containsProfanity } from '@/lib/moderation';
@@ -70,6 +71,11 @@ function PostForm() {
           .single();
         if (dbError) {
           console.error(dbError);
+          Sentry.withScope((scope) => {
+            scope.setTags({ page: 'post', op: 'insert', table: 'posts', source: 'auto-submit' });
+            scope.setContext('supabase', { category: saved.category });
+            Sentry.captureException(dbError);
+          });
           setAutoSubmitting(false);
         } else {
           if (inserted?.id) {
@@ -164,6 +170,11 @@ function PostForm() {
     setLoading(false);
     if (dbError) {
       console.error(dbError);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'post', op: 'insert', table: 'posts' });
+        scope.setContext('supabase', { category });
+        Sentry.captureException(dbError);
+      });
       setError('Could not share your post right now. Please try again in a moment.');
     } else {
       if (inserted?.id) {

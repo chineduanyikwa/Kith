@@ -2,6 +2,7 @@
 
 import { useState, Suspense, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import * as Sentry from '@sentry/nextjs'
 import { supabase } from '@/lib/supabase'
 import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis'
 import { containsProfanity } from '@/lib/moderation'
@@ -191,6 +192,11 @@ function RespondForm() {
           .single()
         if (error) {
           console.error(error)
+          Sentry.withScope((scope) => {
+            scope.setTags({ page: 'respond', op: 'insert', table: 'responses', source: 'auto-submit' })
+            scope.setContext('supabase', { postId: saved.postId, parentId: saved.parentId ?? null })
+            Sentry.captureException(error)
+          })
           setAutoSubmitting(false)
         } else {
           if (!saved.parentId && inserted?.id) {
@@ -321,6 +327,11 @@ function RespondForm() {
       .single()
     if (error) {
       console.error(error)
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'respond', op: 'insert', table: 'responses', isReply: String(isReplyMode) })
+        scope.setContext('supabase', { postId, parentId: isReplyMode ? parentId : null })
+        Sentry.captureException(error)
+      })
       setLoading(false)
       setError(`Could not send your ${isReplyMode ? 'reply' : 'response'} right now. Please try again in a moment.`)
       return

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { supabaseUrl, supabaseKey } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
@@ -43,6 +44,11 @@ export async function POST(request: NextRequest) {
     : await supabase.from('responses').delete().eq('user_id', userId);
   if (respError) {
     console.error('account delete: responses', respError);
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/account/delete', op: keepContent ? 'update' : 'delete', table: 'responses' });
+      scope.setContext('supabase', { userId });
+      Sentry.captureException(respError);
+    });
     return NextResponse.json({ error: RETRYABLE_DELETE_ERROR }, { status: 500 });
   }
 
@@ -54,6 +60,11 @@ export async function POST(request: NextRequest) {
     : await supabase.from('posts').delete().eq('user_id', userId);
   if (postsError) {
     console.error('account delete: posts', postsError);
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/account/delete', op: keepContent ? 'update' : 'delete', table: 'posts' });
+      scope.setContext('supabase', { userId });
+      Sentry.captureException(postsError);
+    });
     return NextResponse.json({ error: RETRYABLE_DELETE_ERROR }, { status: 500 });
   }
 
@@ -63,6 +74,11 @@ export async function POST(request: NextRequest) {
     .eq('id', userId);
   if (profileError) {
     console.error('account delete: profile', profileError);
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/account/delete', op: 'delete', table: 'profiles' });
+      scope.setContext('supabase', { userId });
+      Sentry.captureException(profileError);
+    });
     return NextResponse.json({ error: RETRYABLE_DELETE_ERROR }, { status: 500 });
   }
 
@@ -82,6 +98,11 @@ export async function POST(request: NextRequest) {
   });
   const { error: authError } = await admin.auth.admin.deleteUser(userId);
   if (authError) {
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/account/delete', op: 'auth.deleteUser' });
+      scope.setContext('supabase', { userId });
+      Sentry.captureException(authError);
+    });
     return NextResponse.json(
       { error: 'Could not delete auth account. Please contact support.' },
       { status: 500 },

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authorizeAdmin } from '@/lib/admin-route';
 
 export async function POST(request: NextRequest) {
@@ -31,6 +32,11 @@ export async function POST(request: NextRequest) {
     .update({ hidden })
     .eq('id', targetId);
   if (error) {
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/admin/hide', op: 'update', table });
+      scope.setContext('supabase', { targetId, hidden });
+      Sentry.captureException(error);
+    });
     return NextResponse.json({ error: 'Update failed.' }, { status: 500 });
   }
 

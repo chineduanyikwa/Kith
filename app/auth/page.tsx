@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { friendlyAuthError } from '@/lib/auth-errors';
 import { formatWATDateTime } from '@/lib/time';
@@ -41,6 +42,10 @@ async function fetchAvailableSuggestions(): Promise<string[]> {
   // can't verify — taken usernames would otherwise leak through.
   if (error) {
     console.warn('username availability check failed', error);
+    Sentry.withScope((scope) => {
+      scope.setTags({ page: 'auth', op: 'select', table: 'profiles' });
+      Sentry.captureException(error);
+    });
     return [];
   }
   const taken = new Set((data ?? []).map((r: { username: string }) => r.username));
@@ -61,6 +66,10 @@ async function fetchAvailableSuggestions(): Promise<string[]> {
       .maybeSingle();
     if (rowErr) {
       console.warn('username availability check failed', rowErr);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'auth', op: 'select', table: 'profiles' });
+        Sentry.captureException(rowErr);
+      });
       break;
     }
     if (!row) {
@@ -177,6 +186,10 @@ function AuthForm() {
       // through to signUp and rely on the unique-constraint catch path
       // below to show a friendly error.
       console.warn('username pre-submit check failed', checkError);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'auth', op: 'select', table: 'profiles', source: 'pre-submit' });
+        Sentry.captureException(checkError);
+      });
     } else if (existingProfile) {
       setError(TAKEN_USERNAME_MESSAGE);
       setLoading(false);
@@ -193,6 +206,10 @@ function AuthForm() {
       },
     });
     if (signUpError) {
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'auth', op: 'signUp' });
+        Sentry.captureException(signUpError);
+      });
       setError(friendlyAuthError(signUpError.message, 'signup'));
       setLoading(false);
       return;
@@ -209,6 +226,10 @@ function AuthForm() {
           setError(TAKEN_USERNAME_MESSAGE);
           refreshSuggestions();
         } else {
+          Sentry.withScope((scope) => {
+            scope.setTags({ page: 'auth', op: 'insert', table: 'profiles' });
+            Sentry.captureException(profileError);
+          });
           setError(friendlyAuthError(profileError.message, 'signup'));
         }
         setLoading(false);
@@ -287,6 +308,10 @@ function AuthForm() {
       },
     });
     if (oauthError) {
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'auth', op: 'signInWithOAuth', provider: 'google' });
+        Sentry.captureException(oauthError);
+      });
       setError(friendlyAuthError(oauthError.message, 'oauth'));
     }
   }

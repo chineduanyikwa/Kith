@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { supabaseUrl } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
@@ -34,6 +35,11 @@ export async function POST(request: NextRequest) {
   const { data: usersData, error: usersError } =
     await admin.auth.admin.listUsers({ perPage: 1000 });
   if (usersError) {
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/notifications/helper', op: 'auth.listUsers' });
+      scope.setContext('supabase', { category, postId });
+      Sentry.captureException(usersError);
+    });
     return NextResponse.json(
       { error: 'Could not load users.' },
       { status: 500 },

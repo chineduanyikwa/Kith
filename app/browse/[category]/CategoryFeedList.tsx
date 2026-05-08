@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import * as Sentry from '@sentry/nextjs'
 import { supabase } from '@/lib/supabase'
 import { formatWAT } from '@/lib/time'
 
@@ -49,6 +50,13 @@ export default function CategoryFeedList({
       .range(from, to)
 
     if (error || !data) {
+      if (error) {
+        Sentry.withScope((scope) => {
+          scope.setTags({ page: 'browse-category', op: 'select', table: 'posts' })
+          scope.setContext('supabase', { category })
+          Sentry.captureException(error)
+        })
+      }
       setLoading(false)
       return
     }

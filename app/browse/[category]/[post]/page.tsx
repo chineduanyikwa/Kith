@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis';
 import { containsProfanity } from '@/lib/moderation';
@@ -191,6 +192,11 @@ export default function PostPage({
     setResolving(false);
     if (error) {
       console.error(error);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'post-detail', op: 'update', table: 'posts', field: 'resolved' });
+        scope.setContext('supabase', { postId: post.id });
+        Sentry.captureException(error);
+      });
       return;
     }
     setPost({ ...post, resolved: true });
@@ -438,6 +444,11 @@ export default function PostPage({
 
     if (error) {
       console.error(error);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'post-detail', op: 'insert', table: 'responses' });
+        scope.setContext('supabase', { postId, parentId: last.id });
+        Sentry.captureException(error);
+      });
       setReplying(false);
       setReplyError('Could not send your reply right now. Please try again in a moment.');
       return;
@@ -752,6 +763,11 @@ function ChatView({
       .eq('id', m.id);
     setEditSaving(false);
     if (error) {
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'post-detail', op: 'update', table: 'responses' });
+        scope.setContext('supabase', { responseId: m.id });
+        Sentry.captureException(error);
+      });
       setEditError('Could not save. Try again.');
       return;
     }
@@ -781,6 +797,10 @@ function ChatView({
     setBlockSubmitting(false);
     if (error && !/duplicate key|unique/i.test(error.message)) {
       console.error(error);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'post-detail', op: 'insert', table: 'blocks' });
+        Sentry.captureException(error);
+      });
       setBlockError('Could not block this user right now. Please try again in a moment.');
       return;
     }
@@ -801,6 +821,10 @@ function ChatView({
     setBlockSubmitting(false);
     if (error) {
       console.error(error);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'post-detail', op: 'delete', table: 'blocks' });
+        Sentry.captureException(error);
+      });
       setBlockError('Could not unblock this user right now. Please try again in a moment.');
       return;
     }
@@ -827,6 +851,13 @@ function ChatView({
     setReportSubmitting(false);
     if (error) {
       console.error(error);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'post-detail', op: 'insert', table: 'reports', target_type: reportTarget.kind });
+        scope.setContext('supabase', reportTarget.kind === 'response'
+          ? { target_id: reportTarget.id }
+          : { target_user_id: reportTarget.userId });
+        Sentry.captureException(error);
+      });
       setReportError('Could not send your report right now. Please try again in a moment.');
       return;
     }
