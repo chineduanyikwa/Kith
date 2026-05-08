@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { friendlyAuthError } from '@/lib/auth-errors';
 import PasswordInput from '../../components/PasswordInput';
@@ -67,6 +68,10 @@ export default function UpdatePasswordPage() {
 
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'update-password', op: 'updateUser' });
+        Sentry.captureException(updateError);
+      });
       setError(friendlyAuthError(updateError.message, 'update'));
       setLoading(false);
       return;

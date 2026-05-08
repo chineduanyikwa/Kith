@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { friendlyAuthError } from '@/lib/auth-errors';
 
@@ -20,6 +21,10 @@ export default function ResetPasswordPage() {
       redirectTo: window.location.origin + '/auth/update-password',
     });
     if (resetError) {
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'reset-password', op: 'resetPasswordForEmail' });
+        Sentry.captureException(resetError);
+      });
       setError(friendlyAuthError(resetError.message, 'reset'));
       setLoading(false);
       return;

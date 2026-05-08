@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import { formatWAT } from '@/lib/time';
 
@@ -280,6 +281,10 @@ export default function ProfilePage() {
           .maybeSingle();
         if (checkError) {
           console.warn('username availability check failed', checkError);
+          Sentry.withScope((scope) => {
+            scope.setTags({ page: 'profile', op: 'select', table: 'profiles' });
+            Sentry.captureException(checkError);
+          });
           setUsernameError('Could not check that username right now. Please try again in a moment.');
           return;
         }
@@ -307,6 +312,10 @@ export default function ProfilePage() {
         ) {
           setUsernameError(USERNAME_TAKEN_MESSAGE);
         } else {
+          Sentry.withScope((scope) => {
+            scope.setTags({ page: 'profile', op: 'update', table: 'profiles' });
+            Sentry.captureException(updateError);
+          });
           setUsernameError('Could not update your username right now. Please try again in a moment.');
         }
         return;
@@ -333,6 +342,11 @@ export default function ProfilePage() {
 
     if (dbError) {
       console.error(dbError);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'profile', op: 'delete', table: 'posts' });
+        scope.setContext('supabase', { postId });
+        Sentry.captureException(dbError);
+      });
       setError('Could not delete your post right now. Please try again in a moment.');
       return;
     }
@@ -375,6 +389,11 @@ export default function ProfilePage() {
 
     if (dbError) {
       console.error(dbError);
+      Sentry.withScope((scope) => {
+        scope.setTags({ page: 'profile', op: 'delete', table: 'responses' });
+        scope.setContext('supabase', { responseId });
+        Sentry.captureException(dbError);
+      });
       setError('Could not delete your response right now. Please try again in a moment.');
       return;
     }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { authorizeAdmin } from '@/lib/admin-route';
 
 type Action = 'ban' | 'suspend_7' | 'suspend_30' | 'unban';
@@ -62,6 +63,11 @@ export async function POST(request: NextRequest) {
     .update(update)
     .eq('id', userId);
   if (error) {
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/admin/ban', op: 'update', table: 'profiles', action: action as Action });
+      scope.setContext('supabase', { userId });
+      Sentry.captureException(error);
+    });
     return NextResponse.json({ error: 'Update failed.' }, { status: 500 });
   }
 

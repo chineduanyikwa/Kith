@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import { supabaseUrl, supabaseKey } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
@@ -78,6 +79,13 @@ export async function POST(request: NextRequest) {
     await admin.auth.admin.getUserById(post.user_id);
   const authorEmail = authorData?.user?.email;
   if (authorError || !authorEmail) {
+    if (authorError) {
+      Sentry.withScope((scope) => {
+        scope.setTags({ route: 'api/notifications/response', op: 'auth.getUserById' });
+        scope.setContext('supabase', { postId: post.id });
+        Sentry.captureException(authorError);
+      });
+    }
     return NextResponse.json(
       { error: 'Could not load post author.' },
       { status: 500 },

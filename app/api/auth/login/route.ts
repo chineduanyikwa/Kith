@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import * as Sentry from '@sentry/nextjs';
 import { supabaseUrl, supabaseKey } from '@/lib/supabase';
 import {
   RATE_LIMIT_MESSAGE,
@@ -49,6 +50,10 @@ export async function POST(request: NextRequest) {
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/auth/login', op: 'signInWithPassword' });
+      Sentry.captureException(error);
+    });
     recordLoginFailure(ip);
     return NextResponse.json(
       { error: friendlyAuthError(error.message, 'login') },

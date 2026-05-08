@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { supabase } from '@/lib/supabase';
 import PasswordInput from '../../components/PasswordInput';
 
@@ -55,6 +56,10 @@ export default function ChangePasswordPage() {
         password: currentPassword,
       });
       if (signInError) {
+        Sentry.withScope((scope) => {
+          scope.setTags({ page: 'change-password', op: 'signInWithPassword', source: 'change-password-reauth' });
+          Sentry.captureException(signInError);
+        });
         setError('Current password is incorrect.');
         return;
       }
@@ -62,6 +67,10 @@ export default function ChangePasswordPage() {
         password: newPassword,
       });
       if (updateError) {
+        Sentry.withScope((scope) => {
+          scope.setTags({ page: 'change-password', op: 'updateUser' });
+          Sentry.captureException(updateError);
+        });
         setError('Could not update your password right now. Please try again in a moment.');
         return;
       }
