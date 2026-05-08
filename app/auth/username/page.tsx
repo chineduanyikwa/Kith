@@ -164,14 +164,17 @@ function ChooseUsernameForm() {
                 />
               </div>
               <p className="text-xs text-stone-400 mt-1.5">{USERNAME_HINT_MESSAGE}</p>
-              <div className="flex flex-wrap gap-2 mt-3">
+              {suggestions.length > 0 && (
+                <p className="text-xs text-stone-400 mt-3 mb-1.5">Suggestions</p>
+              )}
+              <div className="flex flex-wrap gap-2">
                 {suggestions.map((s) => (
                   <button
                     key={s}
                     type="button"
                     onClick={() => setUsername(s)}
                     disabled={saving}
-                    className="text-xs text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-full px-3 py-1 transition-colors disabled:opacity-40"
+                    className={'text-xs px-3 py-1.5 rounded-full border transition-colors disabled:opacity-40 ' + (username === s ? 'border-stone-800 bg-stone-100 text-stone-800' : 'border-stone-200 bg-white text-stone-500 hover:border-stone-400')}
                   >
                     {s}
                   </button>
