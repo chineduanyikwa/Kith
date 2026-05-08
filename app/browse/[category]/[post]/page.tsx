@@ -155,6 +155,7 @@ export default function PostPage({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [allResponses, setAllResponses] = useState<ResponseRow[]>([]);
   const [resolving, setResolving] = useState(false);
+  const [showResolveConfirm, setShowResolveConfirm] = useState(false);
   const [helpedState, setHelpedState] = useState<Record<number, 'confirm' | 'gone'>>({});
 
   const [showHelperSupport, setShowHelperSupport] = useState(false);
@@ -190,6 +191,7 @@ export default function PostPage({
       return;
     }
     setPost({ ...post, resolved: true });
+    setShowResolveConfirm(false);
   }
 
   useEffect(() => {
@@ -497,7 +499,7 @@ export default function PostPage({
                   </div>
                 ) : (
                   <button
-                    onClick={handleMarkResolved}
+                    onClick={() => setShowResolveConfirm(true)}
                     disabled={resolving}
                     className="mt-4 text-xs text-stone-600 border border-stone-300 px-3 py-1.5 rounded-full hover:border-stone-800 hover:text-stone-800 transition-colors disabled:opacity-40"
                   >
@@ -570,6 +572,39 @@ export default function PostPage({
               </div>
             )}
           </>
+        )}
+
+        {showResolveConfirm && (
+          <div
+            className="fixed inset-0 bg-stone-900/40 flex items-center justify-center px-4 z-50"
+            onClick={() => { if (!resolving) setShowResolveConfirm(false); }}
+          >
+            <div
+              className="bg-white rounded-2xl px-5 py-5 max-w-sm w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-stone-800 text-base font-medium mb-2">Mark this post as resolved?</p>
+              <p className="text-stone-600 text-sm leading-relaxed mb-5">
+                No new replies will be possible.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowResolveConfirm(false)}
+                  disabled={resolving}
+                  className="flex-1 border border-stone-300 text-stone-700 py-2 rounded-xl text-sm font-medium hover:border-stone-800 transition-colors disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleMarkResolved}
+                  disabled={resolving}
+                  className="flex-1 bg-stone-800 text-white py-2 rounded-xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
+                >
+                  {resolving ? 'Marking...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {showHelperSupport && (
@@ -882,7 +917,11 @@ function ChatView({
         </div>
       )}
 
-      {canReply ? (
+      {post.resolved ? (
+        <div className="mt-6 bg-stone-100 text-stone-500 text-sm text-center py-3 px-4 rounded-xl">
+          This post has been marked as resolved.
+        </div>
+      ) : canReply ? (
         showReplyCrisis ? (
           <div className="bg-white shadow-card rounded-xl bg-card px-5 py-4 mt-6">
             <p className="text-sm font-medium text-stone-700 mb-2">One moment before this sends.</p>
