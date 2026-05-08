@@ -426,7 +426,7 @@ function AuthForm() {
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (tab === 'signup' && !ageConfirmed)}
                   className="w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
                 >
                   {tab === 'signup' ? (loading ? 'Create account...' : 'Create account') : (loading ? 'Log in...' : 'Log in')}
