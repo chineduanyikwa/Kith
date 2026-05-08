@@ -4,6 +4,7 @@ import { use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis';
+import { containsProfanity } from '@/lib/moderation';
 
 const SUPPORT_LABELS: Record<string, string> = {
   let_it_out: 'Just let it out',
@@ -386,6 +387,10 @@ export default function PostPage({
     }
     if (trimmed.length > 1500) {
       setReplyError('Please keep your reply under 1500 characters.');
+      return;
+    }
+    if (containsProfanity(trimmed)) {
+      setReplyError("Your message contains language that isn't allowed on Kith.");
       return;
     }
     if (!skipCrisisCheck && containsCrisisLanguage(trimmed)) {

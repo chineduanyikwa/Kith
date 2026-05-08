@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis';
+import { containsProfanity } from '@/lib/moderation';
 import type { User } from '@supabase/supabase-js';
 
 const SUPPORT_OPTIONS = [
@@ -110,6 +111,11 @@ function PostForm() {
     }
     setError('');
     setRateLimitError('');
+
+    if (containsProfanity(content)) {
+      setError("Your message contains language that isn't allowed on Kith.");
+      return;
+    }
 
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) {

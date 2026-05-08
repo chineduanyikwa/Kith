@@ -4,6 +4,7 @@ import { useState, Suspense, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis'
+import { containsProfanity } from '@/lib/moderation'
 import type { User } from '@supabase/supabase-js'
 
 const SUPPORT_LABELS: Record<string, string> = {
@@ -225,6 +226,10 @@ function RespondForm() {
     const validationError = validate()
     if (validationError) {
       setError(validationError)
+      return
+    }
+    if (containsProfanity(content)) {
+      setError("Your message contains language that isn't allowed on Kith.")
       return
     }
     if (isReplyMode) {
