@@ -31,30 +31,26 @@ export async function proxy(request: NextRequest) {
   }
 
   if (request.nextUrl.pathname.startsWith('/browse')) {
-    if (!user) {
-      const authUrl = new URL('/auth', request.url)
-      authUrl.searchParams.set('next', request.nextUrl.pathname)
-      return NextResponse.redirect(authUrl)
-    }
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('banned, suspended_until')
+        .eq('id', user.id)
+        .maybeSingle()
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('banned, suspended_until')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    if (profile?.banned) {
-      await supabase.auth.signOut()
-      const authUrl = new URL('/auth', request.url)
-      authUrl.searchParams.set('error', 'Your account has been permanently banned.')
-      return NextResponse.redirect(authUrl)
-    }
-    if (profile?.suspended_until && new Date(profile.suspended_until) > new Date()) {
-      await supabase.auth.signOut()
-      const until = new Date(profile.suspended_until).toLocaleString()
-      const authUrl = new URL('/auth', request.url)
-      authUrl.searchParams.set('error', `Your account is suspended until ${until}.`)
-      return NextResponse.redirect(authUrl)
+      if (profile?.banned) {
+        await supabase.auth.signOut()
+        const authUrl = new URL('/auth', request.url)
+        authUrl.searchParams.set('error', 'Your account has been permanently banned.')
+        return NextResponse.redirect(authUrl)
+      }
+      if (profile?.suspended_until && new Date(profile.suspended_until) > new Date()) {
+        await supabase.auth.signOut()
+        const until = new Date(profile.suspended_until).toLocaleString()
+        const authUrl = new URL('/auth', request.url)
+        authUrl.searchParams.set('error', `Your account is suspended until ${until}.`)
+        return NextResponse.redirect(authUrl)
+      }
     }
   }
 
