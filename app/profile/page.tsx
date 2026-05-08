@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { formatWAT } from '@/lib/time';
@@ -72,14 +72,9 @@ export default function ProfilePage() {
   >(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authProvider, setAuthProvider] = useState<string | null>(null);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -90,7 +85,6 @@ export default function ProfilePage() {
       }
       const me = currentUser.id;
       setUserId(me);
-      setUserEmail(currentUser.email ?? null);
       setAuthProvider(currentUser.app_metadata?.provider ?? null);
 
       const { data: profile } = await supabase
@@ -232,6 +226,21 @@ export default function ProfilePage() {
     init();
   }, [router]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: MouseEvent | TouchEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+    };
+  }, [menuOpen]);
+
   function startEditingUsername() {
     setUsernameDraft(username ?? '');
     setUsernameError('');
@@ -309,46 +318,6 @@ export default function ProfilePage() {
       setUsernameSuccess(true);
     } finally {
       setSavingUsername(false);
-    }
-  }
-
-  async function handleChangePassword() {
-    if (!userEmail) return;
-    setPasswordError('');
-    setPasswordSuccess(false);
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match.');
-      return;
-    }
-    if (newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters.');
-      return;
-    }
-
-    setSavingPassword(true);
-    try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: userEmail,
-        password: currentPassword,
-      });
-      if (signInError) {
-        setPasswordError('Current password is incorrect.');
-        return;
-      }
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-      if (updateError) {
-        setPasswordError('Could not update your password right now. Please try again in a moment.');
-        return;
-      }
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setPasswordSuccess(true);
-    } finally {
-      setSavingPassword(false);
     }
   }
 
@@ -430,19 +399,57 @@ export default function ProfilePage() {
           <a href="/" className="text-sm text-stone-400 hover:text-stone-600">
             Back to Home
           </a>
-          <h1 className="text-3xl font-bold text-stone-800 mt-2">Your profile</h1>
+          <div className="flex items-start justify-between gap-3 mt-2">
+            <h1 className="text-3xl font-bold text-stone-800">Your profile</h1>
+            {!editingUsername && (
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  aria-label="Profile actions"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  className="text-stone-500 hover:text-stone-700 transition-colors p-2 -mr-2 -mt-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="12" cy="5" r="1.75" />
+                    <circle cx="12" cy="12" r="1.75" />
+                    <circle cx="12" cy="19" r="1.75" />
+                  </svg>
+                </button>
+                {menuOpen && (
+                  <div role="menu" className="absolute right-0 top-full mt-1 bg-white shadow-card rounded-xl bg-card py-1 min-w-[180px] z-10">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        startEditingUsername();
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+                    >
+                      Edit username
+                    </button>
+                    {authProvider !== 'google' && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          router.push('/profile/change-password');
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors"
+                      >
+                        Change password
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           {username && !editingUsername && (
-            <div className="mt-1 flex items-center gap-2">
-              <p className="text-stone-500">@{username}</p>
-              <button
-                type="button"
-                onClick={startEditingUsername}
-                className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
-                aria-label="Edit username"
-              >
-                Edit username
-              </button>
-            </div>
+            <p className="text-stone-500 mt-1">@{username}</p>
           )}
           {editingUsername && (
             <div className="mt-2">
@@ -484,59 +491,6 @@ export default function ProfilePage() {
             <p className="text-xs text-green-600 mt-1">Username updated.</p>
           )}
         </div>
-
-        {authProvider !== 'google' && (
-          <div className="mb-8">
-            <h2 className="text-sm font-medium text-stone-500 mb-3">Change password</h2>
-            <div className="space-y-2">
-              <input
-                type="password"
-                placeholder="Current password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                disabled={savingPassword}
-                className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-stone-700 text-sm focus:outline-none focus:border-stone-400 disabled:opacity-50"
-              />
-              <input
-                type="password"
-                placeholder="New password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                disabled={savingPassword}
-                className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-stone-700 text-sm focus:outline-none focus:border-stone-400 disabled:opacity-50"
-              />
-              <input
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={savingPassword}
-                className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-stone-700 text-sm focus:outline-none focus:border-stone-400 disabled:opacity-50"
-              />
-            </div>
-            {passwordError && (
-              <p className="text-xs text-red-500 mt-2">{passwordError}</p>
-            )}
-            {passwordSuccess && (
-              <p className="text-xs text-green-600 mt-2">Password updated successfully.</p>
-            )}
-            <div className="mt-2">
-              <button
-                type="button"
-                onClick={handleChangePassword}
-                disabled={
-                  savingPassword ||
-                  currentPassword.length === 0 ||
-                  newPassword.length === 0 ||
-                  confirmPassword.length === 0
-                }
-                className="bg-stone-800 text-white py-1.5 px-3 rounded-xl text-xs font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
-              >
-                {savingPassword ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
-        )}
 
         <h2 className="text-sm font-medium text-stone-500 mb-3 mt-8">Your posts</h2>
 
