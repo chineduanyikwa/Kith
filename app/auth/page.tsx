@@ -8,9 +8,9 @@ import { friendlyAuthError } from '@/lib/auth-errors';
 import PasswordInput from '../components/PasswordInput';
 
 const USERNAME_POOL = [
-  'quietriver', 'morningstone', 'stillwater', 'gentleoak', 'softrain',
-  'wildbird', 'sunfield', 'darkmoss', 'whitepine', 'graycedar',
-  'silentbrook', 'autumnlight', 'evergreenpath', 'mossymeadow', 'driftwood',
+  'quietriver', 'morning_stone', 'stillwater', 'gentle_oak', 'softrain',
+  'wild_bird', 'sunfield', 'dark_moss', 'whitepine', 'gray_cedar',
+  'silentbrook', 'autumn_light', 'evergreenpath', 'mossy_meadow', 'driftwood',
 ];
 const SUGGESTION_COUNT = 5;
 const TAKEN_USERNAME_MESSAGE = 'That username is already taken. Please choose a different one.';
@@ -352,6 +352,7 @@ function AuthForm() {
                       placeholder="Choose a username"
                       className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 text-stone-700 text-sm focus:outline-none focus:border-stone-400"
                     />
+                    <p className="text-xs text-stone-400 mt-1.5">Lowercase letters, numbers, and underscores only.</p>
                     {suggestions.length > 0 && (
                       <p className="text-xs text-stone-400 mt-3 mb-1.5">Suggestions</p>
                     )}
