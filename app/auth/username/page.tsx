@@ -13,14 +13,23 @@ const USERNAME_HINT_MESSAGE = 'Lowercase letters, numbers, and underscores only.
 const SUGGESTION_ADJECTIVES = ['quiet', 'soft', 'still', 'gentle', 'calm', 'warm', 'slow', 'kind'];
 const SUGGESTION_NOUNS = ['river', 'morning', 'water', 'oak', 'rain', 'stone', 'meadow', 'light'];
 
-function generateSuggestions(count = 3): string[] {
-  const picks = new Set<string>();
-  while (picks.size < count) {
-    const adj = SUGGESTION_ADJECTIVES[Math.floor(Math.random() * SUGGESTION_ADJECTIVES.length)];
-    const noun = SUGGESTION_NOUNS[Math.floor(Math.random() * SUGGESTION_NOUNS.length)];
-    picks.add(`${adj}_${noun}`);
+function shuffled<T>(arr: readonly T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
   }
-  return Array.from(picks);
+  return copy;
+}
+
+function generateSuggestions(): string[] {
+  const adjs = shuffled(SUGGESTION_ADJECTIVES);
+  const nouns = shuffled(SUGGESTION_NOUNS);
+  return [
+    `${adjs[0]}${nouns[0]}`,
+    `${adjs[1]}${nouns[1]}`,
+    `${adjs[2]}_${nouns[2]}`,
+  ];
 }
 
 function ChooseUsernameForm() {
@@ -35,6 +44,7 @@ function ChooseUsernameForm() {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [suggestions] = useState<string[]>(() => generateSuggestions());
 
   useEffect(() => {
@@ -172,11 +182,22 @@ function ChooseUsernameForm() {
               </div>
             </div>
 
+            <label className="flex items-start gap-2 text-sm text-stone-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                required
+                className="mt-0.5 h-4 w-4 rounded border-stone-300 text-stone-800 focus:ring-stone-400"
+              />
+              <span>I confirm I am 18 years of age or older.</span>
+            </label>
+
             {error && <p className="text-sm text-red-500">{error}</p>}
 
             <button
               type="submit"
-              disabled={saving || username.trim().length === 0}
+              disabled={saving || username.trim().length === 0 || !ageConfirmed}
               className="w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
             >
               {saving ? 'Saving...' : 'Continue'}
