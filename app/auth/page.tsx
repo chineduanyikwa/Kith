@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { friendlyAuthError } from '@/lib/auth-errors';
+import { formatWATDateTime } from '@/lib/time';
 import PasswordInput from '../components/PasswordInput';
 
 const USERNAME_POOL = [
@@ -258,7 +259,7 @@ function AuthForm() {
         return;
       }
       if (profile?.suspended_until && new Date(profile.suspended_until) > new Date()) {
-        const until = new Date(profile.suspended_until).toLocaleString();
+        const until = formatWATDateTime(profile.suspended_until);
         await supabase.auth.signOut();
         setError(`Your account is suspended until ${until}.`);
         setLoading(false);

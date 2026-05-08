@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { formatWAT } from '@/lib/time';
 
 const USERNAME_FORMAT = /^[a-z0-9_]{3,20}$/;
 const USERNAME_FORMAT_MESSAGE =
@@ -572,7 +573,7 @@ export default function ProfilePage() {
                   </a>
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
+                      <span className="text-xs text-stone-400">{formatWAT(post.created_at)}</span>
                       <span className="text-stone-300 text-xs">·</span>
                       <span className="text-xs text-stone-400">{showedUp}</span>
                     </div>
@@ -625,7 +626,7 @@ export default function ProfilePage() {
                       <p className="text-stone-700 text-sm leading-relaxed mt-2">{item.content}</p>
                     </a>
                     <div className="flex items-center justify-between mt-3">
-                      <span className="text-xs text-stone-400">{new Date(item.created_at).toLocaleDateString()}</span>
+                      <span className="text-xs text-stone-400">{formatWAT(item.created_at)}</span>
                       <button
                         onClick={() => handleDeleteResponse(item.id)}
                         className="text-xs text-stone-400 hover:text-red-500 transition-colors"

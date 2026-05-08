@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis';
 import { containsProfanity } from '@/lib/moderation';
+import { formatWAT } from '@/lib/time';
 
 const SUPPORT_LABELS: Record<string, string> = {
   let_it_out: 'Just let it out',
@@ -110,7 +111,7 @@ function formatTimestamp(iso: string) {
   if (diffMs < hour) return `${Math.floor(diffMs / minute)}m`;
   if (diffMs < day) return `${Math.floor(diffMs / hour)}h`;
   if (diffMs < 7 * day) return `${Math.floor(diffMs / day)}d`;
-  return d.toLocaleDateString();
+  return formatWAT(iso);
 }
 
 function flattenThread(node: ResponseNode): ResponseNode[] {
@@ -525,7 +526,7 @@ export default function PostPage({
               <div className="flex items-center gap-2 mt-3">
                 <p className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'Anonymous')}</p>
                 <span className="text-stone-300 text-xs">·</span>
-                <span className="text-xs text-stone-400">{new Date(post.created_at).toLocaleDateString()}</span>
+                <span className="text-xs text-stone-400">{formatWAT(post.created_at)}</span>
               </div>
               {currentUserId && currentUserId === post.user_id && (
                 post.resolved ? (
