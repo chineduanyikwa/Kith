@@ -8,6 +8,20 @@ const USERNAME_FORMAT = /^[a-z0-9_]{3,20}$/;
 const USERNAME_FORMAT_MESSAGE =
   'Usernames must be 3–20 characters and use only lowercase letters, numbers, and underscores.';
 const USERNAME_TAKEN_MESSAGE = 'That username is already taken. Please choose a different one.';
+const USERNAME_HINT_MESSAGE = 'Lowercase letters, numbers, and underscores only.';
+
+const SUGGESTION_ADJECTIVES = ['quiet', 'soft', 'still', 'gentle', 'calm', 'warm', 'slow', 'kind'];
+const SUGGESTION_NOUNS = ['river', 'morning', 'water', 'oak', 'rain', 'stone', 'meadow', 'light'];
+
+function generateSuggestions(count = 3): string[] {
+  const picks = new Set<string>();
+  while (picks.size < count) {
+    const adj = SUGGESTION_ADJECTIVES[Math.floor(Math.random() * SUGGESTION_ADJECTIVES.length)];
+    const noun = SUGGESTION_NOUNS[Math.floor(Math.random() * SUGGESTION_NOUNS.length)];
+    picks.add(`${adj}_${noun}`);
+  }
+  return Array.from(picks);
+}
 
 function ChooseUsernameForm() {
   const router = useRouter();
@@ -21,6 +35,7 @@ function ChooseUsernameForm() {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [suggestions] = useState<string[]>(() => generateSuggestions());
 
   useEffect(() => {
     async function init() {
@@ -137,6 +152,20 @@ function ChooseUsernameForm() {
                   disabled={saving}
                   className="flex-1 bg-white border border-stone-200 rounded-xl px-4 py-3 text-stone-700 text-sm focus:outline-none focus:border-stone-400 disabled:opacity-50"
                 />
+              </div>
+              <p className="text-xs text-stone-400 mt-1.5">{USERNAME_HINT_MESSAGE}</p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setUsername(s)}
+                    disabled={saving}
+                    className="text-xs text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-full px-3 py-1 transition-colors disabled:opacity-40"
+                  >
+                    {s}
+                  </button>
+                ))}
               </div>
             </div>
 
