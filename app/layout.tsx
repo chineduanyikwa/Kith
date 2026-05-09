@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
 import CookieConsent from "./components/CookieConsent";
+import PWARegister from "./components/PWARegister";
 import { Analytics } from "@vercel/analytics/react";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -13,6 +14,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Kith",
   description: "Some things are too heavy for one person.",
+  manifest: "/manifest.json",
   openGraph: {
     title: "Kith",
     description: "Some things are too heavy for one person.",
@@ -51,6 +53,7 @@ export default function RootLayout({
         </footer>
         <CookieConsent />
         <Analytics />
+        <PWARegister />
       </body>
     </html>
   );
