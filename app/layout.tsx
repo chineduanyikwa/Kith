@@ -55,6 +55,8 @@ export default function RootLayout({
           <a href="/guidelines" className="hover:text-stone-600 transition-colors">Guidelines</a>
           <span aria-hidden="true">·</span>
           <a href="/safeguarding" className="hover:text-stone-600 transition-colors">Safeguarding</a>
+          <span aria-hidden="true">·</span>
+          <a href="/install" className="hover:text-stone-600 transition-colors">Install app</a>
         </footer>
         <CookieConsent />
         <Analytics />
