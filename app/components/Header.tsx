@@ -55,7 +55,7 @@ export default function Header() {
           <Link href="/auth?tab=signup" className="text-sm text-stone-500 hover:text-stone-700 transition-colors">
             Sign up
           </Link>
-          <Link href="/auth?tab=login" className="text-sm bg-stone-800 text-white px-4 py-1.5 rounded-full hover:bg-stone-700 transition-colors">
+          <Link href="/auth?tab=login" className="text-sm text-stone-500 hover:text-stone-700 transition-colors">
             Log in
           </Link>
         </div>
