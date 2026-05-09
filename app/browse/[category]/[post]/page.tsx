@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis';
 import { containsProfanity } from '@/lib/moderation';
 import { formatWAT } from '@/lib/time';
+import { categoryDisplayName } from '@/lib/categories';
 
 const SUPPORT_LABELS: Record<string, string> = {
   let_it_out: 'Just let it out',
@@ -140,9 +141,7 @@ export default function PostPage({
   const intent = searchParams.get('intent');
   const from = searchParams.get('from');
   const fromProfile = from === 'profile';
-  const categoryName = decodeURIComponent(category)
-    .replace(/-/g, ' ')
-    .replace(/\b\w/g, (l) => l.toUpperCase());
+  const categoryName = categoryDisplayName(category);
   const backHref = fromProfile
     ? '/profile'
     : `/browse/${category}`;
@@ -539,21 +538,22 @@ export default function PostPage({
                 <span className="text-stone-300 text-xs">·</span>
                 <span className="text-xs text-stone-400">{formatWAT(post.created_at)}</span>
               </div>
-              {currentUserId && currentUserId === post.user_id && (
-                post.resolved ? (
-                  <div className="mt-4 inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1.5 rounded-full text-xs font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
-                    Resolved
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowResolveConfirm(true)}
-                    disabled={resolving}
-                    className="mt-4 text-xs text-stone-600 border border-stone-300 px-3 py-1.5 rounded-full hover:border-stone-800 hover:text-stone-800 transition-colors disabled:opacity-40"
-                  >
-                    {resolving ? 'Marking...' : 'Mark as resolved'}
-                  </button>
-                )
+              {post.resolved ? (
+                <div className="mt-4 inline-block text-xs font-medium text-stone-500 bg-stone-100 px-3 py-1.5 rounded-full">
+                  Resolved
+                </div>
+              ) : currentUserId && currentUserId === post.user_id ? (
+                <button
+                  onClick={() => setShowResolveConfirm(true)}
+                  disabled={resolving}
+                  className="mt-4 text-xs text-stone-600 border border-stone-300 px-3 py-1.5 rounded-full hover:border-stone-800 hover:text-stone-800 transition-colors disabled:opacity-40"
+                >
+                  {resolving ? 'Marking...' : 'Mark as resolved'}
+                </button>
+              ) : (
+                <div className="mt-4 inline-block text-xs font-medium text-stone-600 border border-stone-300 px-3 py-1.5 rounded-full">
+                  Open
+                </div>
               )}
             </div>
 

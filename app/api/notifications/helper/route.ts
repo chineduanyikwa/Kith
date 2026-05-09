@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { supabaseUrl } from '@/lib/supabase';
+import { categoryDisplayName } from '@/lib/categories';
 
 export async function POST(request: NextRequest) {
   let body: { category?: unknown; postId?: unknown; authorUserId?: unknown };
@@ -32,6 +33,30 @@ export async function POST(request: NextRequest) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  const { data: followers, error: followersError } = await admin
+    .from('category_follows')
+    .select('user_id')
+    .eq('category', category);
+  if (followersError) {
+    Sentry.withScope((scope) => {
+      scope.setTags({ route: 'api/notifications/helper', op: 'select', table: 'category_follows' });
+      scope.setContext('supabase', { category, postId });
+      Sentry.captureException(followersError);
+    });
+    return NextResponse.json(
+      { error: 'Could not load followers.' },
+      { status: 500 },
+    );
+  }
+  const followerIds = new Set(
+    (followers ?? [])
+      .map((f) => f.user_id as string)
+      .filter((id) => id !== authorUserId),
+  );
+  if (followerIds.size === 0) {
+    return NextResponse.json({ ok: true, skipped: 'no followers' });
+  }
+
   const { data: usersData, error: usersError } =
     await admin.auth.admin.listUsers({ perPage: 1000 });
   if (usersError) {
@@ -46,16 +71,14 @@ export async function POST(request: NextRequest) {
     );
   }
   const recipients = usersData.users
-    .filter((u) => u.id !== authorUserId && u.email)
+    .filter((u) => followerIds.has(u.id) && u.email)
     .map((u) => u.email as string);
 
   if (recipients.length === 0) {
     return NextResponse.json({ ok: true, skipped: 'no recipients' });
   }
 
-  const categoryDisplay = category
-    .replace(/-/g, ' ')
-    .replace(/\b\w/g, (l: string) => l.toUpperCase());
+  const categoryDisplay = categoryDisplayName(category);
   const postUrl = `https://kith.support/browse/${category}/${postId}`;
   const subject = `Someone needs a voice in ${categoryDisplay}`;
   const from = 'Kith <hello@kith.support>';
