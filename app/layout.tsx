@@ -56,7 +56,7 @@ export default function RootLayout({
           <span aria-hidden="true">·</span>
           <a href="/safeguarding" className="hover:text-stone-600 transition-colors">Safeguarding</a>
           <span aria-hidden="true">·</span>
-          <a href="/install" className="hover:text-stone-600 transition-colors">Install app</a>
+          <a href="/install" className="hover:text-stone-600 transition-colors">Install Kith</a>
         </footer>
         <CookieConsent />
         <Analytics />
