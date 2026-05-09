@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "./components/Header";
 import CookieConsent from "./components/CookieConsent";
 import PWARegister from "./components/PWARegister";
+import InstallKithLink from "./components/InstallKithLink";
 import { Analytics } from "@vercel/analytics/react";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -55,8 +56,7 @@ export default function RootLayout({
           <a href="/guidelines" className="hover:text-stone-600 transition-colors">Guidelines</a>
           <span aria-hidden="true">·</span>
           <a href="/safeguarding" className="hover:text-stone-600 transition-colors">Safeguarding</a>
-          <span aria-hidden="true">·</span>
-          <a href="/install" className="hover:text-stone-600 transition-colors">Install Kith</a>
+          <InstallKithLink />
         </footer>
         <CookieConsent />
         <Analytics />
