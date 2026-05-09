@@ -35,6 +35,9 @@ export default function OnboardingModal() {
           <p>
             Kith is a peer support community. Real people, real weight, no scripts. You can come here when you&rsquo;re carrying something heavy &mdash; or when you want to show up for someone who is. Most people end up being both.
           </p>
+          <p>
+            You don&rsquo;t have to choose just one. Helpers can come back as talkers, and talkers can come back as helpers &mdash; whatever you need that day.
+          </p>
           <p>A few things to know:</p>
           <ul className="space-y-2 list-disc pl-5">
             <li>Everything here is pseudonymous &mdash; you&rsquo;re known by your Kith username, not your real name.</li>

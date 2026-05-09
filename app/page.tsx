@@ -20,6 +20,9 @@ export default function Home() {
           <a href="/browse?intent=help" className="block w-full border border-stone-300 text-stone-700 py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-200 transition-colors">
             I want to help
           </a>
+          <p className="text-sm text-stone-500 pt-2">
+            You can do both. Most people do.
+          </p>
         </div>
         <p className="text-xs text-stone-400 pt-4">
           Kith is a peer support community, not a substitute for professional help.
