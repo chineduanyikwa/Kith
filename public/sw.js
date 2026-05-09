@@ -1,4 +1,4 @@
-const CACHE_VERSION = "kith-v1";
+const CACHE_VERSION = "kith-v2";
 const APP_SHELL = ["/", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
