@@ -124,11 +124,23 @@ export default function CategoryFeedList({
               key={post.id}
               className="block bg-white shadow-card rounded-xl bg-card px-5 py-4 hover:shadow-md transition-shadow"
             >
-              {post.support_type && SUPPORT_LABELS[post.support_type] && (
-                <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full mb-2">
-                  Needs: {SUPPORT_LABELS[post.support_type]}
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                {post.support_type && SUPPORT_LABELS[post.support_type] && (
+                  <span className="inline-block text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full">
+                    Needs: {SUPPORT_LABELS[post.support_type]}
+                  </span>
+                )}
+                <span
+                  className={
+                    'inline-block text-xs font-medium px-2 py-1 rounded-full ' +
+                    (post.resolved
+                      ? 'text-stone-500 bg-stone-100'
+                      : 'text-stone-600 border border-stone-300')
+                  }
+                >
+                  {post.resolved ? 'Resolved' : 'Open'}
                 </span>
-              )}
+              </div>
               <p className="text-stone-700 text-sm leading-relaxed">{post.content}</p>
               <div className="flex items-center gap-4 mt-3">
                 <span className="text-xs text-stone-400">{post.anonymous ? 'Anonymous' : (post.profiles?.username ?? 'Anonymous')}</span>
