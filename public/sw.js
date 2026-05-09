@@ -1,10 +1,21 @@
 const CACHE_VERSION = "kith-v3";
-const APP_SHELL = ["/", "/manifest.json", "/icon-192.png", "/icon-512.png"];
+const STATIC_ASSET_EXTENSIONS = [
+  ".js",
+  ".css",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".svg",
+  ".webp",
+  ".ico",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".otf",
+];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)),
-  );
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
@@ -26,18 +37,14 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (url.pathname.startsWith("/api/")) {
-    event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
-          return res;
-        })
-        .catch(() => caches.match(request)),
-    );
-    return;
-  }
+  if (url.pathname.startsWith("/api/")) return;
+
+  if (request.headers.get("accept")?.includes("text/html")) return;
+
+  const isStaticAsset = STATIC_ASSET_EXTENSIONS.some((ext) =>
+    url.pathname.endsWith(ext),
+  );
+  if (!isStaticAsset) return;
 
   event.respondWith(
     caches.match(request).then((cached) => {
