@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
@@ -15,6 +15,7 @@ export const metadata: Metadata = {
   title: "Kith",
   description: "Some things are too heavy for one person.",
   manifest: "/manifest.json",
+  icons: { apple: "/icon-192.png" },
   openGraph: {
     title: "Kith",
     description: "Some things are too heavy for one person.",
@@ -25,6 +26,10 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1C1C1A",
 };
 
 export default function RootLayout({
