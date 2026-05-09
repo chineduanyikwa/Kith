@@ -14,7 +14,7 @@ export default function Home() {
           </p>
         </div>
         <div className="space-y-3 pt-4">
-          <a href="/browse?intent=talk" className="block w-full bg-white shadow-card rounded-xl bg-card px-5 py-4 text-base font-medium text-stone-800 hover:shadow-md transition-shadow">
+          <a href="/browse?intent=talk" className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:opacity-90 transition-opacity">
             I need to talk
           </a>
           <a href="/browse?intent=help" className="block w-full bg-white shadow-card rounded-xl bg-card px-5 py-4 text-base font-medium text-stone-800 hover:shadow-md transition-shadow">
