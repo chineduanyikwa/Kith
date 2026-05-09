@@ -11,6 +11,10 @@ export default function PWARegister() {
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // swallow registration errors — PWA is progressive enhancement
     });
+
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      window.scrollTo(0, 0);
+    }
   }, []);
 
   return null;
