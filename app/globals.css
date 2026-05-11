@@ -48,3 +48,12 @@ h1, h2, h3 {
   line-height: 1.1;
   letter-spacing: -0.025em;
 }
+
+@keyframes typing-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-typing-fade {
+  animation: typing-fade-in 200ms ease-out;
+}

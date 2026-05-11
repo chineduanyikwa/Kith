@@ -1,8 +1,9 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis';
 import { containsProfanity } from '@/lib/moderation';
@@ -744,6 +745,65 @@ function ChatView({
     return () => clearInterval(t);
   }, []);
 
+  const [otherTyping, setOtherTyping] = useState(false);
+  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    const channelName = `thread:${post.id}:${thread.id}`;
+    const channel = supabase.channel(channelName, {
+      config: { presence: { key: currentUserId } },
+    });
+    presenceChannelRef.current = channel;
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState<{ user_id: string; typing: boolean }>();
+        let typing = false;
+        for (const [key, presences] of Object.entries(state)) {
+          if (key === currentUserId) continue;
+          if (presences.some((p) => p.typing)) {
+            typing = true;
+            break;
+          }
+        }
+        setOtherTyping(typing);
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void channel.track({ user_id: currentUserId, typing: false });
+        }
+      });
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      isTypingRef.current = false;
+      presenceChannelRef.current = null;
+      void supabase.removeChannel(channel);
+    };
+  }, [currentUserId, post.id, thread.id]);
+
+  function notifyTyping() {
+    const channel = presenceChannelRef.current;
+    if (!channel || !currentUserId) return;
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      void channel.track({ user_id: currentUserId, typing: true });
+    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      typingTimeoutRef.current = null;
+      const c = presenceChannelRef.current;
+      if (c) void c.track({ user_id: currentUserId, typing: false });
+    }, 3000);
+  }
+
   const isWithinEditWindow = (createdAt: string) =>
     now - new Date(createdAt).getTime() < EDIT_WINDOW_MS;
 
@@ -1139,6 +1199,11 @@ function ChatView({
           </div>
         ) : (
           <div className="mt-6">
+            {otherTyping && (
+              <p className="text-xs text-stone-400 italic mb-2 animate-typing-fade">
+                {otherUsername} is typing...
+              </p>
+            )}
             <div className="flex gap-2 items-end">
               <textarea
                 placeholder="Reply with care."
@@ -1146,6 +1211,7 @@ function ChatView({
                 onChange={(e) => {
                   setReplyContent(e.target.value);
                   if (replyError) setReplyError('');
+                  notifyTyping();
                 }}
                 rows={2}
                 className="flex-1 bg-white shadow-card rounded-2xl px-4 py-3 text-stone-700 text-base focus:outline-none resize-none"
