@@ -24,6 +24,7 @@ export async function sendPushNotification(
   userId: string,
   title: string,
   body: string,
+  url?: string,
 ): Promise<void> {
   if (!configureVapid()) return;
 
@@ -50,7 +51,7 @@ export async function sendPushNotification(
 
   if (!subs || subs.length === 0) return;
 
-  const payload = JSON.stringify({ title, body });
+  const payload = JSON.stringify({ title, body, url });
   const staleIds: string[] = [];
 
   await Promise.all(
