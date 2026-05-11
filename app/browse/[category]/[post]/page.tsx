@@ -1,9 +1,8 @@
 'use client';
 
-import { use, useEffect, useRef, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { containsCrisisLanguage, MANI_NUMBER } from '@/lib/crisis';
 import { containsProfanity } from '@/lib/moderation';
@@ -745,63 +744,6 @@ function ChatView({
     return () => clearInterval(t);
   }, []);
 
-  const [otherTyping, setOtherTyping] = useState(false);
-  const typingChannelRef = useRef<RealtimeChannel | null>(null);
-  const isSubscribedRef = useRef(false);
-  const lastSentAtRef = useRef(0);
-  const otherTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!currentUserId) return;
-    const channel = supabase.channel(`typing:${post.id}:${thread.id}`, {
-      config: { broadcast: { self: false } },
-    });
-
-    channel
-      .on('broadcast', { event: 'typing' }, ({ payload }) => {
-        const senderId =
-          payload && typeof payload === 'object'
-            ? (payload as { user_id?: unknown }).user_id
-            : undefined;
-        if (typeof senderId !== 'string' || senderId === currentUserId) return;
-        setOtherTyping(true);
-        if (otherTypingTimeoutRef.current) clearTimeout(otherTypingTimeoutRef.current);
-        otherTypingTimeoutRef.current = setTimeout(() => {
-          setOtherTyping(false);
-          otherTypingTimeoutRef.current = null;
-        }, 3500);
-      })
-      .subscribe((status) => {
-        isSubscribedRef.current = status === 'SUBSCRIBED';
-      });
-
-    typingChannelRef.current = channel;
-
-    return () => {
-      if (otherTypingTimeoutRef.current) {
-        clearTimeout(otherTypingTimeoutRef.current);
-        otherTypingTimeoutRef.current = null;
-      }
-      isSubscribedRef.current = false;
-      typingChannelRef.current = null;
-      setOtherTyping(false);
-      void supabase.removeChannel(channel);
-    };
-  }, [currentUserId, post.id, thread.id]);
-
-  function notifyTyping() {
-    const channel = typingChannelRef.current;
-    if (!channel || !currentUserId || !isSubscribedRef.current) return;
-    const now = Date.now();
-    if (now - lastSentAtRef.current < 1500) return;
-    lastSentAtRef.current = now;
-    void channel.send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { user_id: currentUserId },
-    });
-  }
-
   const isWithinEditWindow = (createdAt: string) =>
     now - new Date(createdAt).getTime() < EDIT_WINDOW_MS;
 
@@ -1197,11 +1139,6 @@ function ChatView({
           </div>
         ) : (
           <div className="mt-6">
-            {otherTyping && (
-              <p className="text-xs text-stone-400 italic mb-2 animate-typing-fade">
-                {otherUsername} is typing...
-              </p>
-            )}
             <div className="flex gap-2 items-end">
               <textarea
                 placeholder="Reply with care."
@@ -1209,7 +1146,6 @@ function ChatView({
                 onChange={(e) => {
                   setReplyContent(e.target.value);
                   if (replyError) setReplyError('');
-                  notifyTyping();
                 }}
                 rows={2}
                 className="flex-1 bg-white shadow-card rounded-2xl px-4 py-3 text-stone-700 text-base focus:outline-none resize-none"
