@@ -2,7 +2,7 @@ import OnboardingModal from "./components/OnboardingModal";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-stone-50 flex flex-col items-center justify-center px-6">
+    <main className="min-h-[calc(100svh-65px)] bg-stone-50 flex flex-col items-center justify-center px-6">
       <OnboardingModal />
       <div className="max-w-md w-full text-center space-y-8">
         <div className="space-y-3">
