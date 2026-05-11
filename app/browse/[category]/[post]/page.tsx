@@ -746,75 +746,60 @@ function ChatView({
   }, []);
 
   const [otherTyping, setOtherTyping] = useState(false);
-  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isTypingRef = useRef(false);
+  const typingChannelRef = useRef<RealtimeChannel | null>(null);
   const isSubscribedRef = useRef(false);
+  const lastSentAtRef = useRef(0);
+  const otherTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!currentUserId) return;
-    const channelName = `thread:${post.id}:${thread.id}`;
-    const channel = supabase.channel(channelName, {
-      config: { presence: { key: currentUserId } },
+    const channel = supabase.channel(`typing:${post.id}:${thread.id}`, {
+      config: { broadcast: { self: false } },
     });
-    presenceChannelRef.current = channel;
-    isSubscribedRef.current = false;
 
     channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState<{ user_id: string; typing: boolean }>();
-        let typing = false;
-        for (const [key, presences] of Object.entries(state)) {
-          if (key === currentUserId) continue;
-          if (presences.some((p) => p.typing)) {
-            typing = true;
-            break;
-          }
-        }
-        setOtherTyping(typing);
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        const senderId =
+          payload && typeof payload === 'object'
+            ? (payload as { user_id?: unknown }).user_id
+            : undefined;
+        if (typeof senderId !== 'string' || senderId === currentUserId) return;
+        setOtherTyping(true);
+        if (otherTypingTimeoutRef.current) clearTimeout(otherTypingTimeoutRef.current);
+        otherTypingTimeoutRef.current = setTimeout(() => {
+          setOtherTyping(false);
+          otherTypingTimeoutRef.current = null;
+        }, 3500);
       })
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          isSubscribedRef.current = true;
-          void channel.track({
-            user_id: currentUserId,
-            typing: isTypingRef.current,
-          });
-        } else {
-          isSubscribedRef.current = false;
-        }
+        isSubscribedRef.current = status === 'SUBSCRIBED';
       });
 
+    typingChannelRef.current = channel;
+
     return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = null;
+      if (otherTypingTimeoutRef.current) {
+        clearTimeout(otherTypingTimeoutRef.current);
+        otherTypingTimeoutRef.current = null;
       }
-      isTypingRef.current = false;
       isSubscribedRef.current = false;
-      presenceChannelRef.current = null;
+      typingChannelRef.current = null;
+      setOtherTyping(false);
       void supabase.removeChannel(channel);
     };
   }, [currentUserId, post.id, thread.id]);
 
   function notifyTyping() {
-    const channel = presenceChannelRef.current;
-    if (!channel || !currentUserId) return;
-    if (!isTypingRef.current) {
-      isTypingRef.current = true;
-      if (isSubscribedRef.current) {
-        void channel.track({ user_id: currentUserId, typing: true });
-      }
-    }
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      isTypingRef.current = false;
-      typingTimeoutRef.current = null;
-      const c = presenceChannelRef.current;
-      if (c && isSubscribedRef.current) {
-        void c.track({ user_id: currentUserId, typing: false });
-      }
-    }, 3000);
+    const channel = typingChannelRef.current;
+    if (!channel || !currentUserId || !isSubscribedRef.current) return;
+    const now = Date.now();
+    if (now - lastSentAtRef.current < 1500) return;
+    lastSentAtRef.current = now;
+    void channel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { user_id: currentUserId },
+    });
   }
 
   const isWithinEditWindow = (createdAt: string) =>
