@@ -763,6 +763,7 @@ function ChatView({
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState<{ user_id: string; typing: boolean }>();
+        console.log('[typing-debug] presence sync fired', { channelName, state });
         let typing = false;
         for (const [key, presences] of Object.entries(state)) {
           if (key === currentUserId) continue;
@@ -774,12 +775,15 @@ function ChatView({
         setOtherTyping(typing);
       })
       .subscribe((status) => {
+        console.log('[typing-debug] subscribe status change', { channelName, status });
         if (status === 'SUBSCRIBED') {
           isSubscribedRef.current = true;
-          void channel.track({
+          const payload = {
             user_id: currentUserId,
             typing: isTypingRef.current,
-          });
+          };
+          console.log('[typing-debug] track() on subscribe', payload);
+          void channel.track(payload);
         } else {
           isSubscribedRef.current = false;
         }
@@ -799,11 +803,19 @@ function ChatView({
 
   function notifyTyping() {
     const channel = presenceChannelRef.current;
+    console.log('[typing-debug] notifyTyping called', {
+      hasChannel: !!channel,
+      currentUserId,
+      isSubscribed: isSubscribedRef.current,
+      isTyping: isTypingRef.current,
+    });
     if (!channel || !currentUserId) return;
     if (!isTypingRef.current) {
       isTypingRef.current = true;
       if (isSubscribedRef.current) {
-        void channel.track({ user_id: currentUserId, typing: true });
+        const payload = { user_id: currentUserId, typing: true };
+        console.log('[typing-debug] track() typing=true', payload);
+        void channel.track(payload);
       }
     }
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -812,7 +824,9 @@ function ChatView({
       typingTimeoutRef.current = null;
       const c = presenceChannelRef.current;
       if (c && isSubscribedRef.current) {
-        void c.track({ user_id: currentUserId, typing: false });
+        const payload = { user_id: currentUserId, typing: false };
+        console.log('[typing-debug] track() typing=false (timeout)', payload);
+        void c.track(payload);
       }
     }, 3000);
   }
