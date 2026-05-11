@@ -749,6 +749,7 @@ function ChatView({
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -757,6 +758,7 @@ function ChatView({
       config: { presence: { key: currentUserId } },
     });
     presenceChannelRef.current = channel;
+    isSubscribedRef.current = false;
 
     channel
       .on('presence', { event: 'sync' }, () => {
@@ -773,7 +775,13 @@ function ChatView({
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          void channel.track({ user_id: currentUserId, typing: false });
+          isSubscribedRef.current = true;
+          void channel.track({
+            user_id: currentUserId,
+            typing: isTypingRef.current,
+          });
+        } else {
+          isSubscribedRef.current = false;
         }
       });
 
@@ -783,6 +791,7 @@ function ChatView({
         typingTimeoutRef.current = null;
       }
       isTypingRef.current = false;
+      isSubscribedRef.current = false;
       presenceChannelRef.current = null;
       void supabase.removeChannel(channel);
     };
@@ -793,14 +802,18 @@ function ChatView({
     if (!channel || !currentUserId) return;
     if (!isTypingRef.current) {
       isTypingRef.current = true;
-      void channel.track({ user_id: currentUserId, typing: true });
+      if (isSubscribedRef.current) {
+        void channel.track({ user_id: currentUserId, typing: true });
+      }
     }
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       isTypingRef.current = false;
       typingTimeoutRef.current = null;
       const c = presenceChannelRef.current;
-      if (c) void c.track({ user_id: currentUserId, typing: false });
+      if (c && isSubscribedRef.current) {
+        void c.track({ user_id: currentUserId, typing: false });
+      }
     }, 3000);
   }
 
