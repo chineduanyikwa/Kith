@@ -27,7 +27,7 @@ export default function OnboardingModal() {
       aria-labelledby="onboarding-title"
       className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-stone-900/50"
     >
-      <div className="max-w-md w-full bg-white rounded-2xl p-8 space-y-5">
+      <div className="max-w-md w-full bg-white rounded-2xl p-6 md:p-8 space-y-5">
         <h2 id="onboarding-title" className="text-2xl font-bold text-stone-800 tracking-tight">
           You&rsquo;re in.
         </h2>
@@ -48,7 +48,7 @@ export default function OnboardingModal() {
         <button
           type="button"
           onClick={dismiss}
-          className="w-full bg-stone-800 text-white py-3 px-6 rounded-2xl text-base font-medium hover:opacity-90 transition-opacity"
+          className="w-full min-h-[44px] bg-stone-800 text-white py-3 px-6 rounded-2xl text-base font-medium hover:opacity-90 transition-opacity"
         >
           Got it
         </button>

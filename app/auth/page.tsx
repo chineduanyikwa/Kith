@@ -317,14 +317,14 @@ function AuthForm() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-50 px-6 py-8">
-      <div className="max-w-md mx-auto pt-12">
-        <h1 className="text-2xl font-bold text-stone-800 mb-2 text-center">Welcome to Kith</h1>
+    <main className="min-h-screen bg-stone-50 px-4 md:px-6 py-6 md:py-10 flex flex-col justify-center">
+      <div className="max-w-md mx-auto w-full">
+        <h1 className="text-2xl md:text-3xl font-bold text-stone-800 mb-2 text-center">Welcome to Kith</h1>
         <p className="text-stone-500 text-sm text-center mb-6 leading-relaxed">
           You can come here to talk, to listen, or to do both. You don't have to decide now.
         </p>
 
-        <div className="bg-white shadow-card rounded-xl bg-card px-6 py-6">
+        <div className="bg-white shadow-card rounded-xl bg-card px-5 md:px-6 py-6">
           {pendingConfirmationEmail ? (
             <div className="text-center py-4">
               <h2 className="text-base font-medium text-stone-800 mb-2">Check your email</h2>
@@ -341,7 +341,7 @@ function AuthForm() {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={loading}
-                className="w-full bg-white border border-stone-200 text-stone-700 py-3 px-4 rounded-2xl text-sm font-medium hover:border-stone-400 transition-colors disabled:opacity-40 mb-4 flex items-center justify-center gap-3"
+                className="w-full min-h-[44px] bg-white border border-stone-200 text-stone-700 py-3 px-4 rounded-2xl text-sm font-medium hover:border-stone-400 transition-colors disabled:opacity-40 mb-4 flex items-center justify-center gap-3"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
                   <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
@@ -453,7 +453,7 @@ function AuthForm() {
                 <button
                   type="submit"
                   disabled={loading || (tab === 'signup' && !ageConfirmed)}
-                  className="w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
+                  className="w-full min-h-[44px] bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
                 >
                   {tab === 'signup' ? (loading ? 'Create account...' : 'Create account') : (loading ? 'Log in...' : 'Log in')}
                 </button>

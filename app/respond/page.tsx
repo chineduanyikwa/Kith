@@ -350,8 +350,8 @@ function RespondForm() {
 
   if (autoSubmitting) {
     return (
-      <main className="min-h-screen bg-stone-50 px-6 py-10">
-        <div className="max-w-xl mx-auto pt-12 text-center">
+      <main className="min-h-screen bg-stone-50 px-4 md:px-6 py-6 md:py-10 flex flex-col justify-center">
+        <div className="max-w-xl mx-auto w-full text-center">
           <p className="text-stone-500 text-sm">Submitting your response...</p>
         </div>
       </main>
@@ -360,8 +360,8 @@ function RespondForm() {
 
   if (showCrisis) {
     return (
-      <main className="min-h-screen bg-stone-50 px-4 py-8">
-        <div className="max-w-lg mx-auto pt-12">
+      <main className="min-h-screen bg-stone-50 px-4 py-6 md:py-10 flex flex-col justify-center">
+        <div className="max-w-lg mx-auto w-full">
           <p className="text-stone-800 text-lg font-medium mb-3">One moment before this sends.</p>
           <p className="text-stone-600 text-sm leading-relaxed mb-8">
             Some of what you wrote stayed with us. Are you doing okay right now?
@@ -375,13 +375,13 @@ function RespondForm() {
             <button
               onClick={() => { setShowCrisis(false); handleSubmit(true) }}
               disabled={loading}
-              className="block w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-stone-700 transition-colors disabled:opacity-40"
+              className="block w-full min-h-[44px] bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-stone-700 transition-colors disabled:opacity-40"
             >
               Send my {isReplyMode ? 'reply' : 'response'}
             </button>
             <button
               onClick={() => { window.location.href = 'tel:' + MANI_NUMBER }}
-              className="block w-full border border-stone-300 text-stone-700 py-3 px-4 rounded-2xl text-sm font-medium text-center hover:border-stone-800 transition-colors"
+              className="block w-full min-h-[44px] border border-stone-300 text-stone-700 py-3 px-4 rounded-2xl text-sm font-medium text-center hover:border-stone-800 transition-colors"
             >
               Call MANI now
             </button>
@@ -398,15 +398,15 @@ function RespondForm() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-50 px-6 py-10">
+    <main className="min-h-screen bg-stone-50 px-4 md:px-6 py-6 md:py-10">
       <div className="max-w-xl mx-auto">
         <div className="mb-6">
-          <a href={`/browse/${category}/${postId}`} className="text-sm text-stone-400 hover:text-stone-600">
+          <a href={`/browse/${category}/${postId}`} className="inline-flex items-center min-h-[44px] text-sm text-stone-400 hover:text-stone-600">
             Back to Post
           </a>
         </div>
         {isReplyMode ? (
-          <div className="bg-white shadow-card rounded-xl bg-card px-6 py-5 mb-6">
+          <div className="bg-white shadow-card rounded-xl bg-card px-5 md:px-6 py-5 mb-6">
             <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-3">
               Replying to
             </p>
@@ -420,7 +420,7 @@ function RespondForm() {
             )}
           </div>
         ) : (
-          <div className="bg-white shadow-card rounded-xl bg-card px-6 py-5 mb-6">
+          <div className="bg-white shadow-card rounded-xl bg-card px-5 md:px-6 py-5 mb-6">
             <p className="text-xs font-medium text-stone-400 uppercase tracking-wide mb-3">
               You are responding to
             </p>
@@ -435,7 +435,7 @@ function RespondForm() {
           </div>
         )}
         {!isReplyMode && (
-          <div className="shadow-card rounded-xl bg-card px-6 py-5 mb-6">
+          <div className="shadow-card rounded-xl bg-card px-5 md:px-6 py-5 mb-6">
             <p className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-3">How to show up well</p>
             <ul className="space-y-1 mb-4">
               <li className="text-xs text-stone-400 flex items-start gap-2"><span>—</span><span>Listen before advising</span></li>
@@ -507,7 +507,7 @@ function RespondForm() {
               </div>
             </div>
           ) : (
-            <button onClick={handleAddVoice} disabled={loading} className="w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors disabled:opacity-40 mt-4">
+            <button onClick={handleAddVoice} disabled={loading} className="w-full min-h-[44px] bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium hover:bg-stone-700 transition-colors disabled:opacity-40 mt-4">
               {isReplyMode ? (loading ? 'Send reply...' : 'Send reply') : 'Add your voice'}
             </button>
           )}

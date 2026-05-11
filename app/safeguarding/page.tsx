@@ -9,12 +9,12 @@ export function generateMetadata(): Metadata {
 
 export default function SafeguardingPage() {
   return (
-    <div className="px-6 py-12 max-w-2xl mx-auto">
-      <a href="/" className="text-sm text-stone-500 hover:text-stone-700 transition-colors inline-block mb-8">
+    <div className="w-full px-4 md:px-6 py-6 md:py-12 max-w-2xl mx-auto">
+      <a href="/" className="inline-flex items-center min-h-[44px] text-sm text-stone-500 hover:text-stone-700 transition-colors mb-4 md:mb-8">
         ← Back to Home
       </a>
-      <h1 className="text-3xl font-bold text-stone-800 mb-2">Safeguarding Policy</h1>
-      <p className="text-sm text-stone-500 mb-10">
+      <h1 className="text-3xl md:text-4xl font-bold text-stone-800 mb-2">Safeguarding Policy</h1>
+      <p className="text-sm text-stone-500 mb-8 md:mb-10">
         Kith is a peer support community for adults navigating non-clinical emotional difficulty. We take the safety and wellbeing of everyone on the platform seriously.
       </p>
 

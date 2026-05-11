@@ -403,8 +403,8 @@ export default function ProfilePage() {
 
   if (!ready) {
     return (
-      <main className="min-h-screen bg-stone-50 px-6 py-10">
-        <div className="max-w-md mx-auto pt-12 text-center">
+      <main className="min-h-screen bg-stone-50 px-4 md:px-6 py-6 md:py-10">
+        <div className="max-w-md mx-auto pt-6 md:pt-12 text-center">
           <p className="text-stone-500 text-sm">Loading...</p>
         </div>
       </main>
@@ -412,14 +412,14 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-50 px-6 py-10">
+    <main className="min-h-screen bg-stone-50 px-4 md:px-6 py-6 md:py-10">
       <div className="max-w-md mx-auto">
         <div className="mb-8">
-          <a href="/" className="text-sm text-stone-400 hover:text-stone-600">
+          <a href="/" className="inline-flex items-center min-h-[44px] text-sm text-stone-400 hover:text-stone-600">
             Back to Home
           </a>
           <div className="flex items-start justify-between gap-3 mt-2">
-            <h1 className="text-3xl font-bold text-stone-800">Your profile</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-stone-800">Your profile</h1>
             {!editingUsername && (
               <div className="relative" ref={menuRef}>
                 <button

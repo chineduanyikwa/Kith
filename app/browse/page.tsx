@@ -28,10 +28,10 @@ export default async function Browse({
   ];
 
   return (
-    <main className="min-h-screen bg-stone-50 px-6 py-10">
+    <main className="min-h-screen bg-stone-50 px-4 md:px-6 py-6 md:py-10">
       <div className="max-w-md mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-stone-800">
+          <h1 className="text-2xl md:text-3xl font-bold text-stone-800">
             {intent === "talk" ? "Where does it hurt?" : "What brings you here?"}
           </h1>
           <p className="text-stone-500 mt-2">

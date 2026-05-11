@@ -32,30 +32,30 @@ export default function Header() {
   }
 
   return (
-    <header className="w-full px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-      <Link href="/" className="text-lg font-semibold tracking-tight text-gray-900 hover:opacity-70 transition-opacity">
+    <header className="w-full px-4 md:px-6 py-3 md:py-4 border-b border-gray-100 flex items-center justify-between">
+      <Link href="/" className="inline-flex items-center min-h-[44px] text-lg font-semibold tracking-tight text-gray-900 hover:opacity-70 transition-opacity">
         Kith
       </Link>
       {!ready ? (
         <div className="w-32 h-8" />
       ) : loggedIn ? (
         <div className="flex items-center gap-4">
-          <Link href="/profile" className="inline-flex items-center text-sm leading-none text-stone-500 hover:text-stone-700 transition-colors">
+          <Link href="/profile" className="inline-flex items-center min-h-[44px] text-sm leading-none text-stone-500 hover:text-stone-700 transition-colors">
             Profile
           </Link>
           <button
             onClick={handleSignOut}
-            className="inline-flex items-center text-sm leading-none text-stone-500 hover:text-stone-700 transition-colors"
+            className="inline-flex items-center min-h-[44px] text-sm leading-none text-stone-500 hover:text-stone-700 transition-colors"
           >
             Sign out
           </button>
         </div>
       ) : (
         <div className="flex items-center gap-3">
-          <Link href="/auth?tab=signup" className="text-sm text-stone-500 hover:text-stone-700 transition-colors">
+          <Link href="/auth?tab=signup" className="inline-flex items-center min-h-[44px] text-sm text-stone-500 hover:text-stone-700 transition-colors">
             Sign up
           </Link>
-          <Link href="/auth?tab=login" className="text-sm text-stone-500 hover:text-stone-700 transition-colors">
+          <Link href="/auth?tab=login" className="inline-flex items-center min-h-[44px] text-sm text-stone-500 hover:text-stone-700 transition-colors">
             Log in
           </Link>
         </div>

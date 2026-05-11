@@ -48,7 +48,7 @@ export default function RootLayout({
         <main className="max-w-[680px] mx-auto w-full flex-1">
           {children}
         </main>
-        <footer className="flex items-center justify-center gap-2 text-xs text-stone-400 py-6 px-6">
+        <footer className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-stone-400 py-5 px-4 md:py-6 md:px-6">
           <a href="/privacy" className="hover:text-stone-600 transition-colors">Privacy</a>
           <span aria-hidden="true">·</span>
           <a href="/terms" className="hover:text-stone-600 transition-colors">Terms</a>

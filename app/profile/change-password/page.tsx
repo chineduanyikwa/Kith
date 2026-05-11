@@ -85,8 +85,8 @@ export default function ChangePasswordPage() {
 
   if (!ready) {
     return (
-      <main className="min-h-screen bg-stone-50 px-6 py-10">
-        <div className="max-w-md mx-auto pt-12 text-center">
+      <main className="min-h-screen bg-stone-50 px-4 md:px-6 py-6 md:py-10">
+        <div className="max-w-md mx-auto pt-6 md:pt-12 text-center">
           <p className="text-stone-500 text-sm">Loading...</p>
         </div>
       </main>
@@ -94,13 +94,13 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-50 px-6 py-10">
+    <main className="min-h-screen bg-stone-50 px-4 md:px-6 py-6 md:py-10">
       <div className="max-w-md mx-auto">
         <div className="mb-8">
           <a
             href="/profile"
             aria-label="Back to profile"
-            className="inline-flex items-center gap-1 text-sm text-stone-400 hover:text-stone-600 transition-colors"
+            className="inline-flex items-center gap-1 min-h-[44px] text-sm text-stone-400 hover:text-stone-600 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <line x1="19" y1="12" x2="5" y2="12" />
@@ -108,10 +108,10 @@ export default function ChangePasswordPage() {
             </svg>
             Back
           </a>
-          <h1 className="text-3xl font-bold text-stone-800 mt-2">Change password</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-stone-800 mt-2">Change password</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white shadow-card rounded-xl bg-card px-6 py-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white shadow-card rounded-xl bg-card px-5 md:px-6 py-6 space-y-4">
           <div>
             <label className="text-sm font-medium text-stone-600 block mb-1">Current password</label>
             <PasswordInput
@@ -151,7 +151,7 @@ export default function ChangePasswordPage() {
               newPassword.length === 0 ||
               confirmPassword.length === 0
             }
-            className="w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
+            className="w-full min-h-[44px] bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>

@@ -391,7 +391,7 @@ export default function AdminPage() {
 
   if (tab === 'reports' && loading) {
     return (
-      <main className="min-h-screen bg-stone-50 px-4 py-8">
+      <main className="min-h-screen bg-stone-50 px-4 py-6 md:py-10">
         <div className="max-w-2xl mx-auto">
           <p className="text-stone-500 text-sm">Loading reports...</p>
         </div>
@@ -402,7 +402,7 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-stone-50 px-4 py-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-stone-800 text-xl font-medium mb-4">Moderation</h1>
+        <h1 className="text-stone-800 text-xl md:text-2xl font-medium mb-4">Moderation</h1>
 
         <div className="flex border-b border-stone-200 mb-6">
           {TABS.map((t) => (
@@ -665,7 +665,7 @@ export default function AdminPage() {
                 <div className="flex flex-wrap gap-3">
                   <button
                     onClick={() => dismissReport(report.id)}
-                    className="flex-1 border border-stone-200 text-stone-600 text-sm py-2 px-4 rounded-xl hover:bg-stone-50 transition-colors"
+                    className="flex-1 min-h-[44px] border border-stone-200 text-stone-600 text-sm py-2 px-4 rounded-xl hover:bg-stone-50 transition-colors"
                   >
                     Dismiss
                   </button>
@@ -673,13 +673,13 @@ export default function AdminPage() {
                     <>
                       <button
                         onClick={() => toggleHidden(report)}
-                        className="flex-1 bg-amber-50 border border-amber-200 text-amber-700 text-sm py-2 px-4 rounded-xl hover:bg-amber-100 transition-colors"
+                        className="flex-1 min-h-[44px] bg-amber-50 border border-amber-200 text-amber-700 text-sm py-2 px-4 rounded-xl hover:bg-amber-100 transition-colors"
                       >
                         {report.hidden ? 'Unhide' : 'Hide'}
                       </button>
                       <button
                         onClick={() => deleteContent(report)}
-                        className="flex-1 bg-red-50 border border-red-200 text-red-600 text-sm py-2 px-4 rounded-xl hover:bg-red-100 transition-colors"
+                        className="flex-1 min-h-[44px] bg-red-50 border border-red-200 text-red-600 text-sm py-2 px-4 rounded-xl hover:bg-red-100 transition-colors"
                       >
                         Delete content
                       </button>
@@ -689,19 +689,19 @@ export default function AdminPage() {
                     <>
                       <button
                         onClick={() => suspendUser(report, 7)}
-                        className="flex-1 bg-amber-50 border border-amber-200 text-amber-700 text-sm py-2 px-4 rounded-xl hover:bg-amber-100 transition-colors"
+                        className="flex-1 min-h-[44px] bg-amber-50 border border-amber-200 text-amber-700 text-sm py-2 px-4 rounded-xl hover:bg-amber-100 transition-colors"
                       >
                         Suspend 7 days
                       </button>
                       <button
                         onClick={() => suspendUser(report, 30)}
-                        className="flex-1 bg-amber-50 border border-amber-200 text-amber-700 text-sm py-2 px-4 rounded-xl hover:bg-amber-100 transition-colors"
+                        className="flex-1 min-h-[44px] bg-amber-50 border border-amber-200 text-amber-700 text-sm py-2 px-4 rounded-xl hover:bg-amber-100 transition-colors"
                       >
                         Suspend 30 days
                       </button>
                       <button
                         onClick={() => banUser(report)}
-                        className="flex-1 bg-red-50 border border-red-200 text-red-600 text-sm py-2 px-4 rounded-xl hover:bg-red-100 transition-colors"
+                        className="flex-1 min-h-[44px] bg-red-50 border border-red-200 text-red-600 text-sm py-2 px-4 rounded-xl hover:bg-red-100 transition-colors"
                       >
                         Ban permanently
                       </button>

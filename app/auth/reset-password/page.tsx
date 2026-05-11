@@ -35,14 +35,14 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-50 px-6 py-8">
-      <div className="max-w-md mx-auto pt-12">
-        <h1 className="text-2xl font-bold text-stone-800 mb-2 text-center">Reset your password</h1>
+    <main className="min-h-screen bg-stone-50 px-4 md:px-6 py-6 md:py-10 flex flex-col justify-center">
+      <div className="max-w-md mx-auto w-full">
+        <h1 className="text-2xl md:text-3xl font-bold text-stone-800 mb-2 text-center">Reset your password</h1>
         <p className="text-stone-500 text-sm text-center mb-6 leading-relaxed">
           We&apos;ll send you a link to choose a new one.
         </p>
 
-        <div className="bg-white shadow-card rounded-xl bg-card px-6 py-6">
+        <div className="bg-white shadow-card rounded-xl bg-card px-5 md:px-6 py-6">
           {sent ? (
             <div className="text-center py-4">
               <h2 className="text-base font-medium text-stone-800 mb-2">Check your email</h2>
@@ -74,7 +74,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
+                className="w-full min-h-[44px] bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
               >
                 {loading ? 'Send reset link...' : 'Send reset link'}
               </button>

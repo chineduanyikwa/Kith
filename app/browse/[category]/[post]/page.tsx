@@ -352,7 +352,7 @@ export default function PostPage({
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-stone-50 px-4 py-8">
+      <main className="min-h-screen bg-stone-50 px-4 py-6 md:py-8">
         <div className="max-w-lg mx-auto">
           <p className="text-stone-500 text-sm">Loading...</p>
         </div>
@@ -362,7 +362,7 @@ export default function PostPage({
 
   if (!post) {
     return (
-      <main className="min-h-screen bg-stone-50 px-4 py-8">
+      <main className="min-h-screen bg-stone-50 px-4 py-6 md:py-8">
         <div className="max-w-lg mx-auto">
           <a href={notFoundBackHref} className="text-sm text-stone-500 hover:text-stone-700">
             {backLabel}
@@ -604,7 +604,7 @@ export default function PostPage({
             </div>
 
             {(!currentUserId || (currentUserId !== post.user_id && !hasOwnTopLevel)) && (
-              <a href={respondHref} className="block w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6">
+              <a href={respondHref} className="flex items-center justify-center min-h-[44px] w-full bg-stone-800 text-white py-4 px-6 rounded-2xl text-base font-medium text-center hover:bg-stone-700 transition-colors mt-6">
                 Respond to this
               </a>
             )}
@@ -1153,7 +1153,7 @@ function ChatView({
               <button
                 onClick={() => onReply()}
                 disabled={replying || replyContent.trim().length === 0}
-                className="bg-stone-800 text-white px-5 py-3 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
+                className="min-h-[44px] bg-stone-800 text-white px-5 py-3 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors disabled:opacity-40"
               >
                 {replying ? 'Sending...' : 'Send'}
               </button>

@@ -63,8 +63,8 @@ function ReportForm() {
   if (submitted) {
     const hasPost = Boolean(category && post_id);
     return (
-      <main className="min-h-screen bg-stone-50 px-4 py-8">
-        <div className="max-w-lg mx-auto text-center pt-20">
+      <main className="min-h-screen bg-stone-50 px-4 py-6 md:py-10 flex flex-col justify-center">
+        <div className="max-w-lg mx-auto w-full text-center">
           <div className="w-12 h-12 rounded-full bg-stone-200 text-stone-700 flex items-center justify-center mx-auto mb-6 text-xl">
             ✓
           </div>
@@ -74,7 +74,7 @@ function ReportForm() {
           </p>
           <button
             onClick={handleBack}
-            className="block w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors mb-4"
+            className="block w-full min-h-[44px] bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium hover:bg-stone-700 transition-colors mb-4"
           >
             {hasPost ? 'Back to post' : 'Back to browsing'}
           </button>
@@ -92,16 +92,16 @@ function ReportForm() {
   }
 
   return (
-    <main className="min-h-screen bg-stone-50 px-4 py-8">
+    <main className="min-h-screen bg-stone-50 px-4 py-6 md:py-10">
       <div className="max-w-lg mx-auto">
         <button
           onClick={handleBack}
-          className="text-stone-500 text-sm mb-8 hover:text-stone-700 transition-colors"
+          className="inline-flex items-center min-h-[44px] text-stone-500 text-sm mb-4 md:mb-8 hover:text-stone-700 transition-colors"
         >
           ← Back
         </button>
 
-        <h1 className="text-stone-800 text-xl font-medium mb-2">Report this response</h1>
+        <h1 className="text-stone-800 text-xl md:text-2xl font-medium mb-2">Report this response</h1>
         <p className="text-stone-500 text-sm mb-8">What's the issue?</p>
 
         <div className="space-y-3 mb-8">
@@ -123,7 +123,7 @@ function ReportForm() {
         <button
           onClick={handleSubmit}
           disabled={!selectedReason || submitting}
-          className="w-full bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-stone-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full min-h-[44px] bg-stone-800 text-white py-3 px-4 rounded-2xl text-sm font-medium text-center hover:bg-stone-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting ? 'Sending...' : 'Submit report'}
         </button>
