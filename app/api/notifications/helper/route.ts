@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { supabaseUrl } from '@/lib/supabase';
 import { categoryDisplayName } from '@/lib/categories';
+import { sendPushNotification } from '@/lib/webpush';
 
 export async function POST(request: NextRequest) {
   let body: { category?: unknown; postId?: unknown; authorUserId?: unknown };
@@ -103,6 +104,14 @@ export async function POST(request: NextRequest) {
       );
     }
   }
+
+  const pushTitle = `Someone needs a voice in ${categoryDisplay}`;
+  const pushBody = `Someone in the ${categoryDisplay} circle just shared something heavy.`;
+  await Promise.all(
+    Array.from(followerIds).map((id) =>
+      sendPushNotification(id, pushTitle, pushBody),
+    ),
+  );
 
   return NextResponse.json({ ok: true });
 }

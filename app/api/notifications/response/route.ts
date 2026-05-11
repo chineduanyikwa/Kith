@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import * as Sentry from '@sentry/nextjs';
 import { supabaseUrl, supabaseKey } from '@/lib/supabase';
+import { sendPushNotification } from '@/lib/webpush';
 
 export async function POST(request: NextRequest) {
   const response = NextResponse.json({ ok: true });
@@ -116,6 +117,12 @@ export async function POST(request: NextRequest) {
   if (!emailRes.ok) {
     return NextResponse.json({ error: 'Email send failed.' }, { status: 502 });
   }
+
+  await sendPushNotification(
+    post.user_id,
+    'Someone showed up for you',
+    `Someone responded to your post in ${categoryDisplay}.`,
+  );
 
   return response;
 }

@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "./components/Header";
 import CookieConsent from "./components/CookieConsent";
 import PWARegister from "./components/PWARegister";
+import PushSubscriber from "./components/PushSubscriber";
 import InstallKithLink from "./components/InstallKithLink";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -61,6 +62,7 @@ export default function RootLayout({
         <CookieConsent />
         <Analytics />
         <PWARegister />
+        <PushSubscriber />
       </body>
     </html>
   );
