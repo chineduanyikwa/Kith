@@ -434,13 +434,17 @@ export default function PostPage({
       }
     }
 
-    const { error } = await supabase.from('responses').insert({
-      content: trimmed,
-      post_id: parseInt(postId),
-      anonymous: false,
-      user_id: user.id,
-      parent_id: last.id,
-    });
+    const { data: inserted, error } = await supabase
+      .from('responses')
+      .insert({
+        content: trimmed,
+        post_id: parseInt(postId),
+        anonymous: false,
+        user_id: user.id,
+        parent_id: last.id,
+      })
+      .select('id')
+      .single();
 
     if (error) {
       console.error(error);
@@ -452,6 +456,15 @@ export default function PostPage({
       setReplying(false);
       setReplyError('Could not send your reply right now. Please try again in a moment.');
       return;
+    }
+
+    if (inserted?.id) {
+      fetch('/api/notifications/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ responseId: inserted.id }),
+        keepalive: true,
+      }).catch(() => {});
     }
 
     setReplyContent('');

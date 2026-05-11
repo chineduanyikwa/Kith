@@ -199,8 +199,11 @@ function RespondForm() {
           })
           setAutoSubmitting(false)
         } else {
-          if (!saved.parentId && inserted?.id) {
-            fetch('/api/notifications/response', {
+          if (inserted?.id) {
+            const notifyPath = saved.parentId
+              ? '/api/notifications/reply'
+              : '/api/notifications/response'
+            fetch(notifyPath, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ responseId: inserted.id }),
@@ -336,8 +339,11 @@ function RespondForm() {
       setError(`Could not send your ${isReplyMode ? 'reply' : 'response'} right now. Please try again in a moment.`)
       return
     } else {
-      if (!isReplyMode && inserted?.id) {
-        fetch('/api/notifications/response', {
+      if (inserted?.id) {
+        const notifyPath = isReplyMode
+          ? '/api/notifications/reply'
+          : '/api/notifications/response'
+        fetch(notifyPath, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ responseId: inserted.id }),
