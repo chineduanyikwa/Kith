@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
     recipientId,
     'Someone replied to you on Kith',
     `Someone replied to you in a thread on a ${categoryDisplay} post.`,
+    threadUrl,
   );
 
   return response;

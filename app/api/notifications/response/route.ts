@@ -122,6 +122,7 @@ export async function POST(request: NextRequest) {
     post.user_id,
     'Someone showed up for you',
     `Someone responded to your post in ${categoryDisplay}.`,
+    postUrl,
   );
 
   return response;

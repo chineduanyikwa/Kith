@@ -33,11 +33,13 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("push", (event) => {
   let title = "Kith";
   let body = "";
+  let url;
   if (event.data) {
     try {
       const payload = event.data.json();
       if (typeof payload.title === "string") title = payload.title;
       if (typeof payload.body === "string") body = payload.body;
+      if (typeof payload.url === "string") url = payload.url;
     } catch {
       body = event.data.text();
     }
@@ -47,22 +49,31 @@ self.addEventListener("push", (event) => {
       body,
       icon: "/icon-192.png",
       badge: "/icon-192.png",
+      data: { url },
     }),
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = "https://kith.support/";
+  const data = event.notification.data || {};
+  const target =
+    typeof data.url === "string" && data.url
+      ? data.url
+      : "https://kith.support/";
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
         for (const client of clientList) {
           try {
-            const url = new URL(client.url);
-            if (url.origin === "https://kith.support" && "focus" in client) {
-              return client.focus();
+            const clientUrl = new URL(client.url);
+            if (
+              clientUrl.origin === "https://kith.support" &&
+              "navigate" in client &&
+              "focus" in client
+            ) {
+              return client.focus().then(() => client.navigate(target));
             }
           } catch {
             // ignore malformed URLs

@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
   const pushBody = `Someone in the ${categoryDisplay} circle just shared something heavy.`;
   await Promise.all(
     Array.from(followerIds).map((id) =>
-      sendPushNotification(id, pushTitle, pushBody),
+      sendPushNotification(id, pushTitle, pushBody, postUrl),
     ),
   );
 
